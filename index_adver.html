@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>광고 심사 관리 시스템</title>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root {
+  --bg: #0d0d0f;
+  --bg2: #141416;
+  --bg3: #1c1c1f;
+  --bg4: #232327;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --border3: rgba(255,255,255,0.2);
+  --text: #e8e8ea;
+  --text2: #8a8a90;
+  --text3: #555558;
+  --accent: #f0e040;
+  --accent2: #ff5f5f;
+  --accent3: #4ade80;
+  --accent4: #60a5fa;
+  --accent-dim: rgba(240,224,64,0.10);
+  --accent3-dim: rgba(74,222,128,0.10);
+  --accent4-dim: rgba(96,165,250,0.10);
+  --accent2-dim: rgba(255,95,95,0.10);
+  --radius: 12px;
+  --radius-sm: 7px;
+  --mono: 'DM Mono', monospace;
+  --sans: 'Pretendard', -apple-system, sans-serif;
+  --sidebar: 220px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.6; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+/* ── TOPBAR ── */
+.topbar {
+  height: 52px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 16px;
+  flex-shrink: 0;
+  z-index: 10;
+}
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-mark {
+  width: 28px; height: 28px;
+  background: var(--accent);
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+}
+.logo-mark svg { width: 14px; height: 14px; fill: #0d0d0f; }
+.logo-text { font-size: 14px; font-weight: 600; letter-spacing: -0.3px; }
+.logo-text span { color: var(--accent); }
+.topbar-sep { width: 1px; height: 20px; background: var(--border2); margin: 0 4px; }
+.topbar-sub { font-size: 12px; color: var(--text3); font-family: var(--mono); }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--text3); font-family: var(--mono); }
+
+/* ── LAYOUT ── */
+.shell { display: flex; flex: 1; overflow: hidden; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: var(--sidebar);
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 16px 0 24px;
+}
+.sidebar-section { margin-bottom: 4px; }
+.sidebar-label {
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--text3);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 0 16px 8px;
+  margin-top: 16px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--text2);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: all .15s;
+  user-select: none;
+  position: relative;
+}
+.nav-item:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+.nav-item.active { color: var(--text); background: rgba(255,255,255,0.04); border-left-color: var(--accent); }
+.nav-item svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; opacity: .7; }
+.nav-item.active svg { opacity: 1; }
+.nav-badge {
+  margin-left: auto;
+  background: var(--accent);
+  color: #0d0d0f;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--mono);
+  min-width: 18px;
+  height: 18px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 5px;
+}
+.nav-badge.blue { background: var(--accent4); }
+.nav-badge.red { background: var(--accent2); }
+.sidebar-divider { height: 1px; background: var(--border); margin: 8px 16px; }
+
+/* ── MAIN PANEL ── */
+.main-panel { flex: 1; overflow-y: auto; padding: 28px 32px 60px; }
+
+/* ── PAGES ── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── PAGE HEADER ── */
+.page-head { margin-bottom: 24px; }
+.page-head h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; margin-bottom: 4px; }
+.page-head p { font-size: 13px; color: var(--text3); }
+
+/* ── METRICS ── */
+.metrics { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 24px; }
+.metric {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  transition: border-color .15s;
+}
+.metric:hover { border-color: var(--border2); }
+.metric-val { font-size: 26px; font-weight: 600; font-family: var(--mono); line-height: 1; margin-bottom: 5px; }
+.metric-lbl { font-size: 11px; color: var(--text3); }
+.metric-val.yellow { color: var(--accent); }
+.metric-val.green { color: var(--accent3); }
+.metric-val.blue { color: var(--accent4); }
+.metric-val.red { color: var(--accent2); }
+
+/* ── CARD ── */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+.card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.card-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.card-sub { font-size: 11px; color: var(--text3); font-family: var(--mono); margin-top: 2px; }
+
+/* ── FORM ── */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.form-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+.fg { display: flex; flex-direction: column; gap: 5px; }
+.fg label { font-size: 11px; color: var(--text3); font-family: var(--mono); letter-spacing: .02em; }
+.fg input, .fg select, .fg textarea {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--text);
+  font-family: var(--sans);
+  transition: border-color .15s;
+  width: 100%;
+}
+.fg input:focus, .fg select:focus, .fg textarea:focus { outline: none; border-color: rgba(240,224,64,0.35); }
+.fg textarea { resize: vertical; min-height: 64px; }
+.fg select option { background: var(--bg3); }
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 500; font-family: var(--sans);
+  cursor: pointer; border: 1px solid var(--border2);
+  background: transparent; color: var(--text2);
+  transition: all .15s;
+}
+.btn:hover { color: var(--text); border-color: var(--border3); background: rgba(255,255,255,0.04); }
+.btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #0d0d0f; font-weight: 600; }
+.btn-primary:hover { background: #d4c500; border-color: #d4c500; color: #0d0d0f; }
+.btn-success { background: rgba(74,222,128,0.12); border-color: rgba(74,222,128,0.3); color: var(--accent3); font-weight: 600; }
+.btn-success:hover { background: rgba(74,222,128,0.2); }
+.btn-danger { background: rgba(255,95,95,0.10); border-color: rgba(255,95,95,0.25); color: var(--accent2); }
+.btn-danger:hover { background: rgba(255,95,95,0.18); }
+.btn-blue { background: rgba(96,165,250,0.10); border-color: rgba(96,165,250,0.25); color: var(--accent4); }
+.btn-blue:hover { background: rgba(96,165,250,0.18); }
+.btn-sm { padding: 4px 10px; font-size: 11px; }
+.btn:disabled { opacity: .35; cursor: not-allowed; }
+
+/* ── BADGES ── */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 10px; font-weight: 600; font-family: var(--mono);
+  border: 1px solid transparent;
+}
+.badge-wait { background: rgba(240,224,64,0.1); color: var(--accent); border-color: rgba(240,224,64,0.2); }
+.badge-review { background: rgba(96,165,250,0.1); color: var(--accent4); border-color: rgba(96,165,250,0.2); }
+.badge-done { background: rgba(74,222,128,0.1); color: var(--accent3); border-color: rgba(74,222,128,0.2); }
+.badge-change { background: rgba(255,95,95,0.1); color: var(--accent2); border-color: rgba(255,95,95,0.2); }
+.badge-assoc { background: rgba(168,85,247,0.1); color: #c084fc; border-color: rgba(168,85,247,0.2); }
+.badge-self { background: rgba(96,165,250,0.1); color: var(--accent4); border-color: rgba(96,165,250,0.2); }
+
+/* ── TABLE ── */
+.tbl-wrap { overflow-x: auto; }
+table.tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+table.tbl th { text-align: left; padding: 8px 12px; font-size: 10px; font-weight: 600; font-family: var(--mono); color: var(--text3); border-bottom: 1px solid var(--border); letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+table.tbl td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text2); vertical-align: middle; }
+table.tbl tr:last-child td { border-bottom: none; }
+table.tbl tr:hover td { background: rgba(255,255,255,0.02); color: var(--text); }
+table.tbl td .doc-id { font-family: var(--mono); color: var(--accent4); font-size: 11px; }
+
+/* ── UPLOAD ZONES ── */
+.upload-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.drop-zone {
+  border: 1.5px dashed var(--border2);
+  border-radius: var(--radius);
+  padding: 24px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .18s;
+  background: var(--bg3);
+  position: relative; overflow: hidden;
+}
+.drop-zone:hover, .drop-zone.drag { border-color: rgba(240,224,64,0.35); background: var(--accent-dim); }
+.drop-zone.loaded { border-color: rgba(74,222,128,0.4); background: var(--accent3-dim); }
+.drop-zone input { display: none; }
+.dz-icon { width: 36px; height: 36px; margin: 0 auto 10px; border-radius: 8px; border: 1px solid var(--border2); background: var(--bg4); display: flex; align-items: center; justify-content: center; }
+.dz-icon svg { width: 16px; height: 16px; stroke: var(--text2); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.drop-zone.loaded .dz-icon svg { stroke: var(--accent3); }
+.dz-label { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+.dz-ext { font-size: 10px; font-family: var(--mono); color: var(--text3); background: var(--bg4); border: 1px solid var(--border); border-radius: 4px; padding: 1px 7px; display: inline-block; margin-bottom: 5px; }
+.dz-hint { font-size: 11px; color: var(--text3); }
+.dz-fname { margin-top: 8px; font-size: 11px; font-family: var(--mono); color: var(--accent3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 4px; }
+
+/* ── STEP BAR ── */
+.step-bar { display: flex; align-items: center; margin-bottom: 24px; gap: 0; }
+.step-item { display: flex; align-items: center; gap: 8px; }
+.step-num {
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; font-family: var(--mono);
+  border: 1.5px solid var(--border2);
+  background: var(--bg3); color: var(--text3);
+  flex-shrink: 0; transition: all .2s;
+}
+.step-item.done .step-num { background: rgba(74,222,128,0.15); border-color: rgba(74,222,128,0.4); color: var(--accent3); }
+.step-item.active .step-num { background: rgba(240,224,64,0.15); border-color: rgba(240,224,64,0.4); color: var(--accent); }
+.step-lbl { font-size: 12px; color: var(--text3); white-space: nowrap; }
+.step-item.active .step-lbl { color: var(--text); font-weight: 500; }
+.step-item.done .step-lbl { color: var(--accent3); }
+.step-line { flex: 1; height: 1px; background: var(--border); margin: 0 10px; min-width: 20px; }
+
+/* ── PROCESS STEPS (심사 프로세스 뷰) ── */
+.process-flow { display: flex; gap: 0; margin-bottom: 28px; overflow-x: auto; padding-bottom: 4px; }
+.pstep {
+  display: flex; align-items: center;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  min-width: 160px;
+  cursor: pointer;
+  transition: all .15s;
+  position: relative;
+}
+.pstep:hover { border-color: var(--border2); }
+.pstep.active { border-color: rgba(240,224,64,0.35); background: var(--accent-dim); }
+.pstep-inner { flex: 1; }
+.pstep-num { font-size: 10px; font-family: var(--mono); color: var(--text3); margin-bottom: 3px; }
+.pstep-title { font-size: 12px; font-weight: 600; color: var(--text); }
+.pstep-sub { font-size: 10px; color: var(--text3); margin-top: 2px; }
+.pstep.active .pstep-title { color: var(--accent); }
+.pstep-arrow {
+  display: flex; align-items: center;
+  width: 28px; flex-shrink: 0;
+  color: var(--text3); font-size: 14px;
+  justify-content: center;
+}
+
+/* ── DIFF ENGINE UI ── */
+.diff-mode-tabs { display: flex; gap: 4px; background: var(--bg3); border: 1px solid var(--border); border-radius: 9px; padding: 3px; width: fit-content; margin-bottom: 20px; }
+.dmt { padding: 5px 14px; border-radius: 6px; border: none; background: transparent; color: var(--text3); font-size: 12px; font-weight: 500; cursor: pointer; font-family: var(--sans); display: flex; align-items: center; gap: 6px; transition: all .15s; }
+.dmt svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; opacity: .6; }
+.dmt.active { background: var(--bg4); color: var(--text); border: 1px solid var(--border2); }
+.dmt.active svg { opacity: 1; }
+
+.btn-run-diff {
+  width: 100%; padding: 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  font-size: 13px; font-weight: 600; font-family: var(--sans);
+  cursor: pointer; transition: all .18s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-bottom: 16px;
+}
+.btn-run-diff:hover:not(:disabled) { background: var(--accent-dim); border-color: rgba(240,224,64,0.3); color: var(--accent); }
+.btn-run-diff:disabled { opacity: .35; cursor: not-allowed; }
+.btn-run-diff svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+.diff-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 20px; }
+.dstat { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; }
+.dstat-num { font-size: 22px; font-weight: 600; font-family: var(--mono); line-height: 1; margin-bottom: 4px; }
+.dstat-num.ch { color: var(--accent); }
+.dstat-num.ad { color: var(--accent3); }
+.dstat-num.rm { color: var(--accent2); }
+.dstat-lbl { font-size: 11px; color: var(--text3); }
+
+.filter-row { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+.fbtn { font-size: 11px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--border2); background: transparent; cursor: pointer; color: var(--text3); transition: all .15s; font-family: var(--sans); }
+.fbtn:hover { color: var(--text); }
+.fbtn.active { background: var(--accent-dim); color: var(--accent); border-color: rgba(240,224,64,0.25); }
+
+.page-block { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 6px; overflow: hidden; }
+.page-block:hover { border-color: var(--border2); }
+.page-hdr { padding: 10px 14px; display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; border-bottom: 1px solid transparent; transition: border-color .15s; }
+.page-block.open .page-hdr { border-bottom-color: var(--border); }
+.chev { width: 12px; height: 12px; stroke: var(--text3); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s; flex-shrink: 0; }
+.chev.open { transform: rotate(90deg); }
+.page-title { font-size: 11px; font-weight: 500; flex: 1; font-family: var(--mono); color: var(--text3); }
+.diff-count { font-size: 10px; color: var(--text3); font-family: var(--mono); }
+.p-badge { font-size: 9px; font-weight: 600; padding: 2px 7px; border-radius: 999px; font-family: var(--mono); border: 1px solid transparent; }
+.pb-d { background: rgba(240,224,64,0.1); color: var(--accent); border-color: rgba(240,224,64,0.2); }
+.pb-s { background: var(--bg4); color: var(--text3); border-color: var(--border); }
+.pb-n { background: rgba(74,222,128,0.1); color: var(--accent3); border-color: rgba(74,222,128,0.2); }
+.pb-x { background: rgba(255,95,95,0.1); color: var(--accent2); border-color: rgba(255,95,95,0.2); }
+
+.page-body { display: none; padding: 14px; }
+.page-body.open { display: block; }
+.img-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.col-hdr { font-size: 9px; font-weight: 600; font-family: var(--mono); color: var(--text3); margin-bottom: 6px; letter-spacing: .06em; text-transform: uppercase; display: flex; align-items: center; gap: 5px; }
+.count-chip { font-size: 9px; padding: 1px 6px; border-radius: 3px; font-family: var(--mono); letter-spacing: 0; text-transform: none; }
+.chip-del { background: rgba(255,95,95,0.15); color: #ff9090; }
+.chip-add { background: rgba(240,224,64,0.15); color: #cbb800; }
+.canvas-box { position: relative; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; background: #fff; line-height: 0; }
+.canvas-box canvas { width: 100%; display: block; }
+.hl-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+.view-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+.vtab { font-size: 10px; padding: 3px 10px; border-radius: 5px; border: 1px solid var(--border); background: transparent; cursor: pointer; color: var(--text3); transition: all .15s; font-family: var(--sans); font-weight: 500; }
+.vtab:hover { color: var(--text2); border-color: var(--border2); }
+.vtab.active { background: var(--bg4); color: var(--text); border-color: var(--border2); }
+.legend { display: flex; gap: 14px; margin-top: 10px; font-size: 10px; color: var(--text3); align-items: center; flex-wrap: wrap; }
+.ldot { width: 16px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.diff-empty { text-align: center; padding: 32px 20px; color: var(--text3); font-size: 12px; }
+
+/* ── DECISION PANEL ── */
+.decision-panel {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-top: 20px;
+}
+.decision-title { font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+.decision-btns { display: flex; gap: 10px; margin-top: 14px; }
+
+/* ── PROGRESS ── */
+.prog-wrap { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 16px; }
+.prog-lbl { font-size: 11px; font-family: var(--mono); color: var(--text2); margin-bottom: 8px; }
+.prog-track { height: 2px; background: var(--border2); border-radius: 2px; overflow: hidden; }
+.prog-bar { height: 100%; background: var(--accent); border-radius: 2px; transition: width .4s cubic-bezier(.4,0,.2,1); }
+
+/* ── NUM RECORDS ── */
+.num-chip {
+  font-family: var(--mono); font-size: 11px;
+  background: rgba(96,165,250,0.1); color: var(--accent4);
+  border: 1px solid rgba(96,165,250,0.2);
+  border-radius: 4px; padding: 2px 8px;
+  display: inline-block;
+}
+
+/* ── REPORT ── */
+.report-preview { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-top: 16px; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--radius-sm); padding: 10px 16px;
+  font-size: 12px; font-family: var(--mono); color: var(--text);
+  z-index: 999; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.toast.show { display: block; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 14 14"><rect x="1" y="1.5" width="8" height="10" rx="1.2"/><rect x="5" y="1.5" width="8" height="10" rx="1.2" opacity=".5"/><path d="M3 5h4M3 7h3" stroke="#0d0d0f" fill="none" stroke-width="1.2" stroke-linecap="round"/></svg>
+    </div>
+    <span class="logo-text">광고<span>심사</span></span>
+  </div>
+  <div class="topbar-sep"></div>
+  <span class="topbar-sub">금융투자 광고물 심사 관리 시스템</span>
+  <div class="topbar-right">
+    <span id="clock"></span>
+  </div>
+</div>
+
+<div class="shell">
+  <nav class="sidebar">
+    <div class="sidebar-label">심사 프로세스</div>
+    <div class="nav-item active" onclick="showPage('apply')" id="nav-apply">
+      <svg viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M7 4H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2h-2"/><rect x="7" y="2" width="10" height="4" rx="1"/></svg>
+      심사 신청
+      <span class="nav-badge" id="nb1">0</span>
+    </div>
+    <div class="nav-item" onclick="showPage('review')" id="nav-review">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      파일 비교 심사
+      <span class="nav-badge blue" id="nb2">0</span>
+    </div>
+    <div class="nav-item" onclick="showPage('numbers')" id="nav-numbers">
+      <svg viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+      번호 관리
+    </div>
+    <div class="nav-item" onclick="showPage('report')" id="nav-report">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      월간 보고
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-label">현황</div>
+    <div style="padding: 4px 16px;">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-family:var(--mono);">이번 달 심사</div>
+      <div style="font-size:22px;font-weight:600;color:var(--accent);font-family:var(--mono)" id="sb-total">0</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+        <div><div style="font-size:18px;font-weight:600;color:var(--accent3);font-family:var(--mono)" id="sb-done">0</div><div style="font-size:10px;color:var(--text3)">완료</div></div>
+        <div><div style="font-size:18px;font-weight:600;color:var(--accent2);font-family:var(--mono)" id="sb-req">0</div><div style="font-size:10px;color:var(--text3)">변경요청</div></div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-panel">
+
+    <!-- ── PAGE 1: 심사 신청 ── -->
+    <div class="page active" id="page-apply">
+      <div class="page-head">
+        <h2>심사 신청 접수</h2>
+        <p>광고 심사를 접수합니다. 공문 번호 발급 후 협회 번호를 입력하세요.</p>
+      </div>
+
+      <div class="process-flow">
+        <div class="pstep active">
+          <div class="pstep-inner">
+            <div class="pstep-num">STEP 01</div>
+            <div class="pstep-title">심사 신청</div>
+            <div class="pstep-sub">접수 · 분류</div>
+          </div>
+        </div>
+        <div class="pstep-arrow">→</div>
+        <div class="pstep" onclick="showPage('review')">
+          <div class="pstep-inner">
+            <div class="pstep-num">STEP 02</div>
+            <div class="pstep-title">파일 비교</div>
+            <div class="pstep-sub">자체 심사</div>
+          </div>
+        </div>
+        <div class="pstep-arrow">→</div>
+        <div class="pstep" onclick="showPage('numbers')">
+          <div class="pstep-inner">
+            <div class="pstep-num">STEP 03</div>
+            <div class="pstep-title">번호 부여</div>
+            <div class="pstep-sub">자동 관리</div>
+          </div>
+        </div>
+        <div class="pstep-arrow">→</div>
+        <div class="pstep" onclick="showPage('report')">
+          <div class="pstep-inner">
+            <div class="pstep-num">STEP 04</div>
+            <div class="pstep-title">월간 보고</div>
+            <div class="pstep-sub">협회 제출</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="metrics">
+        <div class="metric"><div class="metric-val yellow" id="m1">0</div><div class="metric-lbl">전체 접수</div></div>
+        <div class="metric"><div class="metric-val" id="m2">0</div><div class="metric-lbl">심사 대기</div></div>
+        <div class="metric"><div class="metric-val green" id="m3">0</div><div class="metric-lbl">심사 완료</div></div>
+        <div class="metric"><div class="metric-val red" id="m4">0</div><div class="metric-lbl">변경 요청</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div><div class="card-title">신규 접수 등록</div></div>
+        </div>
+        <div class="form-grid">
+          <div class="fg"><label>공문 번호</label><input id="f-doc" placeholder="예: 2025-AD-0042"/></div>
+          <div class="fg"><label>협회 번호</label><input id="f-assoc" placeholder="예: KSC-2025-1234"/></div>
+        </div>
+        <div class="form-grid form-grid-3">
+          <div class="fg"><label>광고물 유형</label>
+            <select id="f-type"><option value="">선택</option><option>펀드 광고</option><option>ETF 광고</option><option>파생상품 광고</option><option>일반 금융투자 광고</option></select>
+          </div>
+          <div class="fg"><label>심사 구분</label>
+            <select id="f-cat"><option value="자체">자체 심사</option><option value="협회">협회 심사</option></select>
+          </div>
+          <div class="fg"><label>신청 회사</label><input id="f-company" placeholder="회사명"/></div>
+        </div>
+        <div class="form-grid">
+          <div class="fg"><label>담당자</label><input id="f-manager" placeholder="담당자명"/></div>
+          <div class="fg"><label>공문 내용 요약</label><input id="f-note" placeholder="주요 내용 요약"/></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:4px">
+          <button class="btn" onclick="clearForm()">초기화</button>
+          <button class="btn btn-primary" onclick="submitApply()">접수 등록</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">접수 목록</div>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>공문 번호</th><th>협회 번호</th><th>유형</th><th>심사 구분</th><th>상태</th><th>접수일</th><th>회사</th><th>액션</th></tr></thead>
+            <tbody id="apply-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PAGE 2: 파일 비교 심사 ── -->
+    <div class="page" id="page-review">
+      <div class="page-head">
+        <h2>파일 비교 심사</h2>
+        <p>기존 협회 심의 파일과 신규 광고 요청 파일을 비교하여 변경 가능 여부를 확인합니다. (자체 심사 건)</p>
+      </div>
+
+      <!-- 심사 건 선택 -->
+      <div id="review-select-section">
+        <div class="card">
+          <div class="card-head"><div class="card-title">자체 심사 대기 목록</div></div>
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr><th>공문 번호</th><th>협회 번호</th><th>유형</th><th>회사</th><th>접수일</th><th>상태</th><th>액션</th></tr></thead>
+              <tbody id="review-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 심사 작업 -->
+      <div id="review-work-section" style="display:none">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+            <div>
+              <div class="card-title">심사 진행</div>
+              <div class="card-sub" id="rv-info">공문번호: — | 협회번호: —</div>
+            </div>
+            <button class="btn btn-sm" onclick="closeReview()">← 목록으로</button>
+          </div>
+
+          <div class="step-bar">
+            <div class="step-item done" id="rstep1"><div class="step-num">1</div><div class="step-lbl">심사 건 선택</div></div>
+            <div class="step-line"></div>
+            <div class="step-item active" id="rstep2"><div class="step-num">2</div><div class="step-lbl">파일 업로드</div></div>
+            <div class="step-line"></div>
+            <div class="step-item" id="rstep3"><div class="step-num">3</div><div class="step-lbl">변경점 비교</div></div>
+            <div class="step-line"></div>
+            <div class="step-item" id="rstep4"><div class="step-num">4</div><div class="step-lbl">심사 결정</div></div>
+          </div>
+
+          <!-- 파일 업로드 -->
+          <div id="rv-upload-section">
+            <div class="diff-mode-tabs" id="diffModeTabs">
+              <button class="dmt active" id="dmt-pptx" onclick="setDiffMode('pptx')">
+                <svg viewBox="0 0 14 14"><rect x="1" y="1.5" width="12" height="11" rx="1.5"/><path d="M3.5 5.5h7M3.5 7.5h5"/></svg>PPT 비교
+              </button>
+              <button class="dmt" id="dmt-pdf" onclick="setDiffMode('pdf')">
+                <svg viewBox="0 0 14 14"><path d="M2 2.5A1.5 1.5 0 013.5 1h5L11 4.5V11.5A1.5 1.5 0 019.5 13h-6A1.5 1.5 0 012 11.5V2.5z"/><path d="M8.5 1v3.5H11"/></svg>PDF 비교
+              </button>
+            </div>
+            <div class="upload-pair">
+              <div class="drop-zone" id="rv-dz1" onclick="document.getElementById('rv-f1').click()" ondragover="rvDrag(event,this)" ondragleave="rvOffDrag(this)" ondrop="rvDrop(event,this,0)">
+                <input type="file" id="rv-f1" accept=".pptx" onchange="rvLoad(this,0)">
+                <div class="dz-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M8 10h8M8 14h5"/></svg></div>
+                <div class="dz-label">기존 파일 (협회 심의본)</div>
+                <div class="dz-ext" id="rv-ext1">.pptx</div>
+                <div class="dz-hint">끌어다 놓거나 클릭하여 업로드</div>
+                <div class="dz-fname" id="rv-fn1"></div>
+              </div>
+              <div class="drop-zone" id="rv-dz2" onclick="document.getElementById('rv-f2').click()" ondragover="rvDrag(event,this)" ondragleave="rvOffDrag(this)" ondrop="rvDrop(event,this,1)">
+                <input type="file" id="rv-f2" accept=".pptx" onchange="rvLoad(this,1)">
+                <div class="dz-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M8 10h8M8 14h5"/><path d="M17 14v4m-2-2h4" stroke-width="2"/></svg></div>
+                <div class="dz-label">신규 파일 (변경 요청본)</div>
+                <div class="dz-ext" id="rv-ext2">.pptx</div>
+                <div class="dz-hint">끌어다 놓거나 클릭하여 업로드</div>
+                <div class="dz-fname" id="rv-fn2"></div>
+              </div>
+            </div>
+            <button class="btn-run-diff" id="rv-run-btn" disabled onclick="runDiff()">
+              <svg viewBox="0 0 15 15"><path d="M1 7.5h13M9 3l5 4.5L9 12"/></svg>
+              두 파일 비교하기
+            </button>
+          </div>
+
+          <!-- 비교 결과 -->
+          <div id="rv-diff-results"></div>
+
+          <!-- 심사 결정 -->
+          <div class="decision-panel" id="rv-decision" style="display:none">
+            <div class="decision-title">심사 결정</div>
+            <div class="fg"><label>심사 의견</label><textarea id="rv-comment" placeholder="심사 의견을 상세히 입력하세요..."></textarea></div>
+            <div class="decision-btns">
+              <button class="btn btn-danger" onclick="decideReview('변경요청')">
+                <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                변경 요청
+              </button>
+              <button class="btn btn-success" onclick="decideReview('완료')">
+                <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="20 6 9 17 4 12"/></svg>
+                심사 완료 및 번호 부여
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PAGE 3: 번호 관리 ── -->
+    <div class="page" id="page-numbers">
+      <div class="page-head">
+        <h2>심사 번호 관리</h2>
+        <p>심사 완료 시 자동 부여된 번호의 이력을 관리합니다.</p>
+      </div>
+      <div class="metrics">
+        <div class="metric"><div class="metric-val yellow" id="nm1">0</div><div class="metric-lbl">총 부여 번호</div></div>
+        <div class="metric"><div class="metric-val blue" id="nm2">0</div><div class="metric-lbl">이번 달 신규</div></div>
+        <div class="metric"><div class="metric-val green" id="nm3">0</div><div class="metric-lbl">자체 심사</div></div>
+        <div class="metric"><div class="metric-val" id="nm4">0</div><div class="metric-lbl">협회 심사</div></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">부여 이력</div>
+          <input style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:5px 10px;font-size:12px;color:var(--text);font-family:var(--mono);width:180px" placeholder="번호 검색..." id="num-search" oninput="renderNums()">
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>심사 번호</th><th>공문 번호</th><th>광고 유형</th><th>심사 구분</th><th>부여일</th><th>만료일</th><th>상태</th></tr></thead>
+            <tbody id="num-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PAGE 4: 월간 보고 ── -->
+    <div class="page" id="page-report">
+      <div class="page-head">
+        <h2>월간 보고 다운로드</h2>
+        <p>금융투자협회에 보고할 월간 심사 번호 부여 이력을 다운로드합니다.</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">보고 기간 선택</div></div>
+        <div class="form-grid">
+          <div class="fg"><label>보고 연도</label><select id="rep-yr"><option>2025</option><option>2024</option></select></div>
+          <div class="fg"><label>보고 월</label>
+            <select id="rep-mo">
+              <option>1월</option><option>2월</option><option>3월</option>
+              <option selected>4월</option><option>5월</option><option>6월</option>
+              <option>7월</option><option>8월</option><option>9월</option>
+              <option>10월</option><option>11월</option><option>12월</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-blue" onclick="previewReport()">미리보기</button>
+          <button class="btn btn-primary" onclick="downloadReport()">CSV 다운로드</button>
+        </div>
+      </div>
+      <div id="report-preview-section" style="display:none">
+        <div class="report-preview">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <div class="card-title" id="rep-title">—</div>
+            <div style="font-size:11px;color:var(--text3);font-family:var(--mono)">총 <span id="rep-cnt">0</span>건 | 금융투자협회 보고용</div>
+          </div>
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr><th>심사번호</th><th>공문번호</th><th>광고유형</th><th>심사구분</th><th>부여일</th><th>만료일</th></tr></thead>
+              <tbody id="rep-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+  if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+});
+
+/* ── STATE ── */
+let items = [
+  {id:1,doc:'2025-AD-0038',assoc:'KSC-2025-1201',type:'펀드 광고',cat:'자체',status:'대기',date:'2025-04-08',company:'한국투자증권',manager:'김민준',note:''},
+  {id:2,doc:'2025-AD-0039',assoc:'KSC-2025-1202',type:'ETF 광고',cat:'협회',status:'협회심사중',date:'2025-04-09',company:'미래에셋증권',manager:'이서연',note:''},
+  {id:3,doc:'2025-AD-0040',assoc:'KSC-2025-1203',type:'파생상품 광고',cat:'자체',status:'대기',date:'2025-04-10',company:'삼성증권',manager:'박지훈',note:''},
+  {id:4,doc:'2025-AD-0034',assoc:'KSC-2025-1185',type:'펀드 광고',cat:'자체',status:'완료',date:'2025-04-02',company:'NH투자증권',manager:'최유나',note:''},
+  {id:5,doc:'2025-AD-0035',assoc:'KSC-2025-1190',type:'일반 금융투자 광고',cat:'협회',status:'완료',date:'2025-04-03',company:'KB증권',manager:'정도현',note:''},
+  {id:6,doc:'2025-AD-0036',assoc:'KSC-2025-1195',type:'ETF 광고',cat:'자체',status:'완료',date:'2025-04-05',company:'신한투자증권',manager:'윤수진',note:''},
+  {id:7,doc:'2025-AD-0037',assoc:'KSC-2025-1198',type:'파생상품 광고',cat:'자체',status:'변경요청',date:'2025-04-07',company:'키움증권',manager:'한재원',note:''},
+  {id:8,doc:'2025-AD-0041',assoc:'KSC-2025-1210',type:'펀드 광고',cat:'자체',status:'완료',date:'2025-04-11',company:'대신증권',manager:'오지현',note:''}
+];
+let numRecords = [
+  {num:'AD-2025-0034',doc:'2025-AD-0034',type:'펀드 광고',cat:'자체',date:'2025-04-02',expire:'2026-04-02'},
+  {num:'AD-2025-0035',doc:'2025-AD-0035',type:'일반 금융투자 광고',cat:'협회',date:'2025-04-03',expire:'2026-04-03'},
+  {num:'AD-2025-0036',doc:'2025-AD-0036',type:'ETF 광고',cat:'자체',date:'2025-04-05',expire:'2026-04-05'},
+  {num:'AD-2025-0041',doc:'2025-AD-0041',type:'펀드 광고',cat:'자체',date:'2025-04-11',expire:'2026-04-11'}
+];
+let nextId = 9;
+let currentReviewId = null;
+
+/* ── DIFF ENGINE STATE ── */
+let diffMode = 'pptx';
+const rvFiles = [null, null];
+let diffPages = [];
+let diffFilter = 'all';
+const SCALE = 1.6;
+
+/* ── CLOCK ── */
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleString('ko-KR', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+updateClock(); setInterval(updateClock, 30000);
+
+/* ── NAVIGATION ── */
+function showPage(p) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.getElementById('nav-'+p).classList.add('active');
+  if (p==='apply') renderApplyList();
+  if (p==='review') { renderReviewList(); document.getElementById('review-work-section').style.display='none'; document.getElementById('review-select-section').style.display='block'; }
+  if (p==='numbers') renderNums();
+}
+
+/* ── STATUS HELPERS ── */
+function statusBadge(s) {
+  const m = {'대기':'badge-wait','완료':'badge-done','변경요청':'badge-change','협회심사중':'badge-assoc'};
+  return `<span class="badge ${m[s]||'badge-review'}">${s}</span>`;
+}
+function catBadge(c) {
+  return c==='자체' ? '<span class="badge badge-self">자체</span>' : '<span class="badge badge-assoc">협회</span>';
+}
+
+/* ── METRICS ── */
+function updateMetrics() {
+  const t=items.length, w=items.filter(i=>i.status==='대기').length;
+  const d=items.filter(i=>i.status==='완료').length, r=items.filter(i=>i.status==='변경요청').length;
+  const rv=items.filter(i=>i.status==='대기'&&i.cat==='자체').length;
+  document.getElementById('m1').textContent=t;
+  document.getElementById('m2').textContent=w;
+  document.getElementById('m3').textContent=d;
+  document.getElementById('m4').textContent=r;
+  document.getElementById('nb1').textContent=w;
+  document.getElementById('nb2').textContent=rv;
+  document.getElementById('sb-total').textContent=t;
+  document.getElementById('sb-done').textContent=d;
+  document.getElementById('sb-req').textContent=r;
+  document.getElementById('nm1').textContent=numRecords.length;
+  const mo=new Date().toISOString().slice(0,7);
+  document.getElementById('nm2').textContent=numRecords.filter(n=>n.date.startsWith(mo)).length;
+  document.getElementById('nm3').textContent=numRecords.filter(n=>n.cat==='자체').length;
+  document.getElementById('nm4').textContent=numRecords.filter(n=>n.cat==='협회').length;
+}
+
+/* ── APPLY LIST ── */
+function renderApplyList() {
+  const tb = document.getElementById('apply-tbody');
+  tb.innerHTML = items.map(it => `<tr>
+    <td><span class="doc-id">${it.doc}</span></td>
+    <td><span class="doc-id">${it.assoc}</span></td>
+    <td>${it.type}</td>
+    <td>${catBadge(it.cat)}</td>
+    <td>${statusBadge(it.status)}</td>
+    <td>${it.date}</td>
+    <td>${it.company}</td>
+    <td><div style="display:flex;gap:4px">
+      ${it.status==='대기'&&it.cat==='자체' ? `<button class="btn btn-sm btn-blue" onclick="goReview(${it.id})">심사 →</button>` : ''}
+      <button class="btn btn-sm btn-danger" onclick="deleteItem(${it.id})">삭제</button>
+    </div></td>
+  </tr>`).join('');
+  updateMetrics();
+}
+
+function submitApply() {
+  const doc=document.getElementById('f-doc').value.trim();
+  const assoc=document.getElementById('f-assoc').value.trim();
+  const type=document.getElementById('f-type').value;
+  const cat=document.getElementById('f-cat').value;
+  const company=document.getElementById('f-company').value.trim();
+  if (!doc||!assoc||!type||!company) { showToast('필수 항목을 모두 입력하세요.'); return; }
+  items.unshift({id:nextId++,doc,assoc,type,cat,status:'대기',date:new Date().toISOString().slice(0,10),company,manager:document.getElementById('f-manager').value.trim(),note:document.getElementById('f-note').value.trim()});
+  clearForm(); renderApplyList(); showToast('접수가 등록되었습니다.');
+}
+function clearForm() {
+  ['f-doc','f-assoc','f-company','f-manager','f-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-type').value=''; document.getElementById('f-cat').value='자체';
+}
+function deleteItem(id) { items=items.filter(i=>i.id!==id); renderApplyList(); }
+function goReview(id) { showPage('review'); openReview(id); }
+
+/* ── REVIEW LIST ── */
+function renderReviewList() {
+  const pending = items.filter(i=>i.status==='대기'&&i.cat==='자체');
+  const tb = document.getElementById('review-tbody');
+  if (!pending.length) {
+    tb.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text3)">자체 심사 대기 건이 없습니다.</td></tr>';
+    return;
+  }
+  tb.innerHTML = pending.map(it => `<tr>
+    <td><span class="doc-id">${it.doc}</span></td>
+    <td><span class="doc-id">${it.assoc}</span></td>
+    <td>${it.type}</td>
+    <td>${it.company}</td>
+    <td>${it.date}</td>
+    <td>${statusBadge(it.status)}</td>
+    <td><button class="btn btn-sm btn-primary" onclick="openReview(${it.id})">심사 시작</button></td>
+  </tr>`).join('');
+}
+
+function openReview(id) {
+  currentReviewId = id;
+  const it = items.find(i=>i.id===id);
+  document.getElementById('rv-info').textContent = `공문번호: ${it.doc} | 협회번호: ${it.assoc} | ${it.type} | ${it.company}`;
+  document.getElementById('review-select-section').style.display = 'none';
+  document.getElementById('review-work-section').style.display = 'block';
+  document.getElementById('rv-decision').style.display = 'none';
+  document.getElementById('rv-diff-results').innerHTML = '';
+  rvFiles[0] = null; rvFiles[1] = null;
+  ['rv-fn1','rv-fn2'].forEach(id=>document.getElementById(id).textContent='');
+  ['rv-dz1','rv-dz2'].forEach(id=>document.getElementById(id).classList.remove('loaded'));
+  document.getElementById('rv-run-btn').disabled = true;
+  diffPages = [];
+  setStep(2);
+}
+
+function closeReview() {
+  document.getElementById('review-work-section').style.display='none';
+  document.getElementById('review-select-section').style.display='block';
+  renderReviewList();
+}
+
+function setStep(n) {
+  [1,2,3,4].forEach(i => {
+    const el = document.getElementById('rstep'+i);
+    el.classList.remove('done','active');
+    if (i < n) el.classList.add('done');
+    else if (i === n) el.classList.add('active');
+  });
+}
+
+/* ── DIFF ENGINE ── */
+function setDiffMode(m) {
+  diffMode = m;
+  rvFiles[0]=null; rvFiles[1]=null;
+  ['rv-fn1','rv-fn2'].forEach(id=>document.getElementById(id).textContent='');
+  ['rv-dz1','rv-dz2'].forEach(id=>document.getElementById(id).classList.remove('loaded'));
+  document.getElementById('rv-run-btn').disabled=true;
+  document.getElementById('rv-diff-results').innerHTML='';
+  const ext = m==='pdf' ? '.pdf' : '.pptx';
+  ['rv-ext1','rv-ext2'].forEach(id=>document.getElementById(id).textContent=ext);
+  document.getElementById('rv-f1').accept=ext;
+  document.getElementById('rv-f2').accept=ext;
+  document.getElementById('dmt-pptx').classList.toggle('active',m==='pptx');
+  document.getElementById('dmt-pdf').classList.toggle('active',m==='pdf');
+}
+
+function rvDrag(e,el){e.preventDefault();el.classList.add('drag');}
+function rvOffDrag(el){el.classList.remove('drag');}
+function rvDrop(e,el,idx){
+  e.preventDefault();el.classList.remove('drag');
+  const f=e.dataTransfer.files[0]; if(!f) return;
+  const ext=diffMode==='pdf'?'.pdf':'.pptx';
+  if(!f.name.toLowerCase().endsWith(ext)) return;
+  rvSetFile(f,idx);
+}
+function rvLoad(inp,idx){if(inp.files[0])rvSetFile(inp.files[0],idx);}
+function rvSetFile(f,idx){
+  rvFiles[idx]=f;
+  document.getElementById('rv-fn'+(idx+1)).textContent=f.name;
+  document.getElementById('rv-dz'+(idx+1)).classList.add('loaded');
+  document.getElementById('rv-run-btn').disabled=!(rvFiles[0]&&rvFiles[1]);
+}
+
+/* ── PDF 렌더링 ── */
+async function renderPDFPages(f) {
+  const buf=await f.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  const pages=[];
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const vp=page.getViewport({scale:SCALE});
+    const canvas=document.createElement('canvas');
+    canvas.width=vp.width; canvas.height=vp.height;
+    await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+    const tc=await page.getTextContent({includeMarkedContent:false});
+    const words=[];
+    for(const item of tc.items){
+      const s=(item.str||'').trim(); if(!s) continue;
+      const [a,,,d,e,ff]=item.transform;
+      const cX=e*SCALE, cY=vp.height-ff*SCALE;
+      const iW=item.width*SCALE;
+      const iH=Math.abs(item.height||d)*SCALE||Math.abs(d)*SCALE||12;
+      const parts=s.split(/\s+/).filter(Boolean);
+      const charW=iW/Math.max(s.replace(/\s+/g,'').length,1);
+      let cx=cX;
+      for(const word of parts){
+        const ww=charW*word.length;
+        words.push({text:word,x:cx,y:cY-iH,w:ww,h:iH});
+        cx+=ww+charW;
+      }
+    }
+    pages.push({num:i,canvas,words,W:vp.width,H:vp.height});
+  }
+  return pages;
+}
+
+/* ── PPTX 렌더링 ── */
+async function renderPPTXPages(f){
+  const buf=await f.arrayBuffer();
+  const zip=await JSZip.loadAsync(buf);
+  const entries=Object.keys(zip.files)
+    .filter(k=>/^ppt\/slides\/slide\d+\.xml$/.test(k))
+    .sort((a,b)=>parseInt(a.match(/\d+/)[0])-parseInt(b.match(/\d+/)[0]));
+  const pages=[];
+  const W=960,H=540;
+  for(const path of entries){
+    const xml=await zip.files[path].async('string');
+    const doc=new DOMParser().parseFromString(xml,'text/xml');
+    const {canvas,words}=drawPPTX(doc,W,H);
+    pages.push({num:parseInt(path.match(/\d+/)[0]),canvas,words,W,H});
+  }
+  return pages;
+}
+
+function drawPPTX(doc,W,H){
+  const canvas=document.createElement('canvas');
+  canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
+  const words=[];
+  const EMU_W=9144000,EMU_H=5143500;
+  doc.querySelectorAll('sp').forEach(sp=>{
+    const offEl=sp.querySelector('off'),extEl=sp.querySelector('ext');
+    if(!offEl||!extEl) return;
+    const spX=parseInt(offEl.getAttribute('x')||0)/EMU_W*W;
+    const spY=parseInt(offEl.getAttribute('y')||0)/EMU_H*H;
+    const spW=parseInt(extEl.getAttribute('cx')||0)/EMU_W*W;
+    const txBody=sp.querySelector('txBody'); if(!txBody) return;
+    let curY=spY;
+    txBody.querySelectorAll('p').forEach(p=>{
+      const runs=p.querySelectorAll('r');
+      if(!runs.length){curY+=16;return;}
+      let lineStr='',fs=14,bold=false;
+      runs.forEach(r=>{
+        const rPr=r.querySelector('rPr');
+        if(rPr){const sz=rPr.getAttribute('sz');if(sz)fs=parseInt(sz)/100;bold=rPr.getAttribute('b')==='1';}
+        lineStr+=(r.querySelector('t')?.textContent||'');
+      });
+      if(!lineStr.trim()){curY+=fs*1.4;return;}
+      ctx.font=`${bold?'bold ':''}${fs}px sans-serif`;
+      ctx.fillStyle='#111111';
+      const maxW=spW||W-spX-20;
+      const lines=wrapLines(ctx,lineStr,maxW);
+      lines.forEach(line=>{
+        if(curY>H) return;
+        ctx.fillText(line,spX,curY+fs);
+        let cx=spX;
+        line.split(/\s+/).filter(Boolean).forEach(word=>{
+          const ww=ctx.measureText(word).width;
+          words.push({text:word,x:cx,y:curY,w:ww,h:fs*1.2});
+          cx+=ww+ctx.measureText(' ').width;
+        });
+        curY+=fs*1.5;
+      });
+      curY+=3;
+    });
+  });
+  return{canvas,words};
+}
+
+function wrapLines(ctx,text,maxW){
+  const ws=text.split(' ');const lines=[];let cur='';
+  ws.forEach(w=>{const t=cur?cur+' '+w:w;if(ctx.measureText(t).width>maxW&&cur){lines.push(cur);cur=w;}else cur=t;});
+  if(cur) lines.push(cur);
+  return lines.length?lines:[text];
+}
+
+/* ── LCS Diff ── */
+function lcs(a,b){
+  const m=a.length,n=b.length;
+  const dp=Array.from({length:m+1},()=>new Int32Array(n+1));
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++) dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]+1:Math.max(dp[i-1][j],dp[i][j-1]);
+  let i=m,j=n;const ops=[];
+  while(i>0||j>0){
+    if(i>0&&j>0&&a[i-1]===b[j-1]){ops.push({t:'eq',ai:i-1,bi:j-1});i--;j--;}
+    else if(j>0&&(i===0||dp[i][j-1]>=dp[i-1][j])){ops.push({t:'add',bi:j-1});j--;}
+    else{ops.push({t:'del',ai:i-1});i--;}
+  }
+  return ops.reverse();
+}
+
+function makeHL(page,idxs,color){
+  const hl=document.createElement('canvas');
+  hl.width=page.W; hl.height=page.H;
+  const ctx=hl.getContext('2d');
+  ctx.clearRect(0,0,page.W,page.H);
+  idxs.forEach(idx=>{const w=page.words[idx];if(!w)return;const P=2;ctx.fillStyle=color;ctx.fillRect(w.x-P,w.y-P,w.w+P*2,w.h+P*2);});
+  return hl;
+}
+
+function diffPage(op,np){
+  const ow=op.words.map(w=>w.text.toLowerCase().replace(/[^\w가-힣]/g,''));
+  const nw=np.words.map(w=>w.text.toLowerCase().replace(/[^\w가-힣]/g,''));
+  const ops=lcs(ow,nw);
+  const oldIdx=new Set(),newIdx=new Set();
+  ops.forEach(op=>{if(op.t==='del')oldIdx.add(op.ai);else if(op.t==='add')newIdx.add(op.bi);});
+  const oldHL=makeHL(op,[...oldIdx],'rgba(255,80,80,0.42)');
+  const newHL=makeHL(np,[...newIdx],'rgba(248,230,0,0.58)');
+  return{oldHL,newHL,oldCount:oldIdx.size,newCount:newIdx.size,changed:oldIdx.size>0||newIdx.size>0};
+}
+
+function drawTo(id,srcCanvas){const el=document.getElementById(id);if(!el||!srcCanvas)return;el.width=srcCanvas.width;el.height=srcCanvas.height;el.getContext('2d').drawImage(srcCanvas,0,0);}
+
+function paintAll(){
+  diffPages.forEach((p,idx)=>{
+    if(p.oldCanvas)drawTo('doc_oc'+idx,p.oldCanvas);
+    if(p.newCanvas)drawTo('doc_nc'+idx,p.newCanvas);
+    if(p.oldHL)drawTo('doc_oh'+idx,p.oldHL);
+    if(p.newHL)drawTo('doc_nh'+idx,p.newHL);
+    if(p.oldCanvas)drawTo('doc_oc2_'+idx,p.oldCanvas);
+    if(p.newCanvas)drawTo('doc_nc2_'+idx,p.newCanvas);
+  });
+}
+
+function buildDiffHTML(p,idx){
+  const {status,num}=p;
+  const bc=status==='same'?'pb-s':status==='new'?'pb-n':status==='del'?'pb-x':'pb-d';
+  const bt=status==='same'?'변경 없음':status==='new'?'추가됨':status==='del'?'삭제됨':'변경됨';
+  const unit=diffMode==='pdf'?'페이지':'슬라이드';
+  let body='';
+  if(status==='same'){
+    body=`<div class="img-cols">
+      <div><div class="col-hdr">심의 완료</div><div class="canvas-box"><canvas id="doc_oc${idx}"></canvas></div></div>
+      <div><div class="col-hdr">신버전</div><div class="canvas-box"><canvas id="doc_nc${idx}"></canvas></div></div>
+    </div>`;
+  } else if(status==='new'){
+    body=`<div style="max-width:52%"><div class="col-hdr">신버전 <span class="count-chip chip-add">새로 추가됨</span></div><div class="canvas-box"><canvas id="doc_nc${idx}"></canvas></div></div>`;
+  } else if(status==='del'){
+    body=`<div style="max-width:52%;opacity:.45"><div class="col-hdr">심의 완료 <span class="count-chip chip-del">삭제됨</span></div><div class="canvas-box"><canvas id="doc_oc${idx}"></canvas></div></div>`;
+  } else {
+    body=`
+      <div class="view-tabs" id="rv_tabs${idx}">
+        <button class="vtab active" onclick="switchVTab(${idx},'hl')">형광 하이라이트</button>
+        <button class="vtab" onclick="switchVTab(${idx},'side')">원본 나란히 보기</button>
+      </div>
+      <div id="rv_vhl${idx}">
+        <div class="img-cols">
+          <div>
+            <div class="col-hdr">심의 완료 <span class="count-chip chip-del">${p.oldCount}개 삭제/변경</span></div>
+            <div class="canvas-box" style="position:relative"><canvas id="doc_oc${idx}"></canvas><canvas id="doc_oh${idx}" class="hl-layer"></canvas></div>
+          </div>
+          <div>
+            <div class="col-hdr">신버전 <span class="count-chip chip-add">${p.newCount}개 추가/변경</span></div>
+            <div class="canvas-box" style="position:relative"><canvas id="doc_nc${idx}"></canvas><canvas id="doc_nh${idx}" class="hl-layer"></canvas></div>
+          </div>
+        </div>
+        <div class="legend">
+          <div class="ldot" style="background:rgba(248,230,0,0.7)"></div><span>추가/변경된 단어</span>
+          <div class="ldot" style="background:rgba(255,80,80,0.55)"></div><span>삭제/변경된 단어</span>
+        </div>
+      </div>
+      <div id="rv_vside${idx}" style="display:none">
+        <div class="img-cols">
+          <div><div class="col-hdr">심의 완료</div><div class="canvas-box"><canvas id="doc_oc2_${idx}"></canvas></div></div>
+          <div><div class="col-hdr">신버전</div><div class="canvas-box"><canvas id="doc_nc2_${idx}"></canvas></div></div>
+        </div>
+      </div>`;
+  }
+  return `<div class="page-block" id="rv_pb${idx}">
+    <div class="page-hdr" onclick="toggleDiffPage(${idx})">
+      <svg class="chev" id="rv_chev${idx}" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      <span class="page-title">${unit} ${String(num).padStart(2,'0')}</span>
+      ${status==='diff'?`<span class="diff-count">∆ ${p.oldCount+p.newCount}</span>`:''}
+      <span class="p-badge ${bc}">${bt}</span>
+    </div>
+    <div class="page-body" id="rv_body${idx}">${body}</div>
+  </div>`;
+}
+
+function switchVTab(idx,view){
+  document.getElementById('rv_vhl'+idx).style.display=view==='hl'?'block':'none';
+  document.getElementById('rv_vside'+idx).style.display=view==='side'?'block':'none';
+  document.getElementById('rv_tabs'+idx).querySelectorAll('.vtab').forEach((t,i)=>t.classList.toggle('active',(i===0&&view==='hl')||(i===1&&view==='side')));
+  if(view==='side'){drawTo('doc_oc2_'+idx,diffPages[idx].oldCanvas);drawTo('doc_nc2_'+idx,diffPages[idx].newCanvas);}
+}
+
+function toggleDiffPage(idx){
+  const body=document.getElementById('rv_body'+idx);
+  const chev=document.getElementById('rv_chev'+idx);
+  const block=document.getElementById('rv_pb'+idx);
+  body.classList.toggle('open'); chev.classList.toggle('open'); block.classList.toggle('open');
+  setTimeout(()=>paintAll(),40);
+}
+
+function setDiffFilter(f){diffFilter=f;renderDiffResults();}
+
+function renderDiffResults(){
+  const diffs=diffPages.filter(p=>p.status==='diff');
+  const adds=diffPages.filter(p=>p.status==='new');
+  const dels=diffPages.filter(p=>p.status==='del');
+  const total=diffPages.length;
+  const changeCount=diffs.length+adds.length+dels.length;
+  const unit=diffMode==='pdf'?'페이지':'슬라이드';
+  let html='';
+  diffPages.forEach((p,i)=>{
+    if(diffFilter==='diff'&&p.status==='same') return;
+    if(diffFilter==='same'&&p.status!=='same') return;
+    html+=buildDiffHTML(p,i);
+  });
+  document.getElementById('rv-diff-results').innerHTML=`
+    <div class="diff-stats">
+      <div class="dstat"><div class="dstat-num ch">${diffs.length}</div><div class="dstat-lbl">변경된 ${unit}</div></div>
+      <div class="dstat"><div class="dstat-num ad">+${adds.length}</div><div class="dstat-lbl">추가된 ${unit}</div></div>
+      <div class="dstat"><div class="dstat-num rm">-${dels.length}</div><div class="dstat-lbl">삭제된 ${unit}</div></div>
+    </div>
+    <div class="filter-row">
+      <button class="fbtn${diffFilter==='all'?' active':''}" onclick="setDiffFilter('all')">전체 ${total}개</button>
+      <button class="fbtn${diffFilter==='diff'?' active':''}" onclick="setDiffFilter('diff')">변경만 보기 ${changeCount}개</button>
+      <button class="fbtn${diffFilter==='same'?' active':''}" onclick="setDiffFilter('same')">동일만 보기 ${total-changeCount}개</button>
+    </div>
+    ${html||'<div class="diff-empty">해당하는 항목이 없습니다</div>'}`;
+  setTimeout(()=>{
+    paintAll();
+    const fi=diffPages.findIndex(p=>p.status!=='same');
+    if(fi>=0){
+      document.getElementById('rv_body'+fi)?.classList.add('open');
+      document.getElementById('rv_chev'+fi)?.classList.add('open');
+      document.getElementById('rv_pb'+fi)?.classList.add('open');
+      setTimeout(()=>paintAll(),80);
+    }
+  },100);
+  document.getElementById('rv-decision').style.display='block';
+  setStep(4);
+}
+
+async function runDiff(){
+  const btn=document.getElementById('rv-run-btn');
+  btn.disabled=true;
+  btn.innerHTML=`<svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="animation:spin .8s linear infinite;width:14px;height:14px"><path d="M7.5 1v2M7.5 12v2M1 7.5h2M12 7.5h2"/></svg> 분석 중...`;
+  setStep(3);
+  document.getElementById('rv-diff-results').innerHTML=`
+    <div class="prog-wrap">
+      <div class="prog-lbl" id="rv-prog-lbl">파일 파싱 중...</div>
+      <div class="prog-track"><div class="prog-bar" id="rv-prog-bar" style="width:8%"></div></div>
+    </div>`;
+  const setP=(w,label)=>{
+    const pb=document.getElementById('rv-prog-bar');
+    const pl=document.getElementById('rv-prog-lbl');
+    if(pb)pb.style.width=w+'%';
+    if(pl&&label)pl.textContent=label;
+  };
+  try{
+    const renderFn=diffMode==='pdf'?renderPDFPages:renderPPTXPages;
+    setP(15,'파일 렌더링 중...');
+    const [oldPages,newPages]=await Promise.all([renderFn(rvFiles[0]),renderFn(rvFiles[1])]);
+    setP(55,'단어 비교 중...');
+    const maxNum=Math.max(
+      oldPages.length?oldPages[oldPages.length-1].num:0,
+      newPages.length?newPages[newPages.length-1].num:0
+    );
+    diffPages=[];
+    for(let n=1;n<=maxNum;n++){
+      const op=oldPages.find(p=>p.num===n);
+      const np=newPages.find(p=>p.num===n);
+      if(!op&&np){diffPages.push({num:n,status:'new',newCanvas:np.canvas,W:np.W,H:np.H});}
+      else if(op&&!np){diffPages.push({num:n,status:'del',oldCanvas:op.canvas,W:op.W,H:op.H});}
+      else if(op&&np){
+        const{oldHL,newHL,oldCount,newCount,changed}=diffPage(op,np);
+        diffPages.push({num:n,status:changed?'diff':'same',oldCanvas:op.canvas,newCanvas:np.canvas,oldHL,newHL,oldCount,newCount,W:op.W,H:op.H});
+      }
+      setP(55+Math.round((n/maxNum)*40),`비교 중... (${n}/${maxNum})`);
+    }
+    setP(100,'완료');
+    diffFilter='all';
+    setTimeout(()=>renderDiffResults(),200);
+  }catch(e){
+    document.getElementById('rv-diff-results').innerHTML=`<div class="diff-empty">오류: ${e.message}</div>`;
+  }
+  btn.disabled=false;
+  btn.innerHTML=`<svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap:round stroke-linejoin="round" style="width:14px;height:14px"><path d="M1 7.5h13M9 3l5 4.5L9 12"/></svg> 다시 비교하기`;
+}
+
+/* ── REVIEW DECISION ── */
+function decideReview(result){
+  const it=items.find(i=>i.id===currentReviewId);
+  if(!it) return;
+  it.status=result;
+  if(result==='완료'){
+    const numStr='AD-2025-'+String(it.doc.split('-').pop()).padStart(4,'0');
+    const today=new Date().toISOString().slice(0,10);
+    const expire=new Date(Date.now()+365*24*3600*1000).toISOString().slice(0,10);
+    if(!numRecords.find(n=>n.num===numStr)){
+      numRecords.push({num:numStr,doc:it.doc,type:it.type,cat:it.cat,date:today,expire});
+    }
+    showToast(`심사 완료 — 번호 ${numStr} 자동 부여됨`);
+  } else {
+    showToast('변경 요청 처리 완료');
+  }
+  updateMetrics();
+  closeReview();
+}
+
+/* ── NUMS ── */
+function renderNums(){
+  updateMetrics();
+  const q=(document.getElementById('num-search').value||'').trim();
+  const filtered=numRecords.filter(n=>!q||n.num.includes(q)||n.doc.includes(q)||n.type.includes(q));
+  const tb=document.getElementById('num-tbody');
+  tb.innerHTML=filtered.map(n=>`<tr>
+    <td><span class="num-chip">${n.num}</span></td>
+    <td><span class="doc-id">${n.doc}</span></td>
+    <td>${n.type}</td>
+    <td>${catBadge(n.cat)}</td>
+    <td>${n.date}</td>
+    <td>${n.expire}</td>
+    <td><span class="badge badge-done">유효</span></td>
+  </tr>`).join('');
+}
+
+/* ── REPORT ── */
+function previewReport(){
+  const yr=document.getElementById('rep-yr').value;
+  const mo=document.getElementById('rep-mo').value.replace('월','').padStart(2,'0');
+  const prefix=yr+'-'+mo;
+  const filtered=numRecords.filter(n=>n.date.startsWith(prefix));
+  document.getElementById('rep-title').textContent=`${yr}년 ${document.getElementById('rep-mo').value} 보고서`;
+  document.getElementById('rep-cnt').textContent=filtered.length;
+  const tb=document.getElementById('rep-tbody');
+  tb.innerHTML=filtered.length?filtered.map(n=>`<tr>
+    <td><span class="num-chip">${n.num}</span></td>
+    <td><span class="doc-id">${n.doc}</span></td>
+    <td>${n.type}</td>
+    <td>${catBadge(n.cat)}</td>
+    <td>${n.date}</td>
+    <td>${n.expire}</td>
+  </tr>`).join(''):'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text3)">해당 월 데이터 없음</td></tr>';
+  document.getElementById('report-preview-section').style.display='block';
+}
+
+function downloadReport(){
+  const yr=document.getElementById('rep-yr').value;
+  const mo=document.getElementById('rep-mo').value.replace('월','').padStart(2,'0');
+  const filtered=numRecords.filter(n=>n.date.startsWith(yr+'-'+mo));
+  const header='심사번호,공문번호,광고유형,심사구분,부여일,만료일\n';
+  const rows=filtered.map(n=>[n.num,n.doc,n.type,n.cat,n.date,n.expire].join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+header+rows],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=`광고심사_${yr}${mo}.csv`;a.click();
+  showToast('CSV 다운로드 완료');
+}
+
+/* ── TOAST ── */
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+/* ── INIT ── */
+renderApplyList();
+</script>
+</body>
+</html>
