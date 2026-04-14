@@ -1,0 +1,2044 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>광고 심사 — AdReview</title>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root {
+  --bg: #e8ecf2;
+  --bg2: #ffffff;
+  --bg3: #f1f4f8;
+  --border: rgba(15, 23, 42, 0.08);
+  --border2: rgba(15, 23, 42, 0.14);
+  --text: #0f172a;
+  --text2: #475569;
+  --text3: #94a3b8;
+  --accent: #0d9488;
+  --accent-warm: #b45309;
+  --accent2: #dc2626;
+  --accent3: #15803d;
+  --accent-dim: rgba(13, 148, 136, 0.12);
+  --shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --radius: 12px;
+  --radius-sm: 7px;
+  --mono: 'DM Mono', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: linear-gradient(165deg, #f8fafc 0%, var(--bg) 45%, #eef2f7 100%);
+  color: var(--text);
+  font-family: 'Pretendard', -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+.header {
+  padding: 28px 40px 24px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-mark {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, #14b8a6, #0f766e);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  display: flex; align-items: center; justify-content: center;
+}
+.logo-mark svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; }
+.logo-text { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; color: var(--text); }
+.logo-text span { color: var(--accent); }
+.header-right { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.header-desc { font-size: 12px; color: var(--text3); font-family: var(--mono); max-width: 420px; text-align: right; }
+.reviewer-row { display: flex; align-items: center; gap: 8px; }
+.reviewer-row label { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+.reviewer-row input {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: var(--text);
+  font-size: 12px;
+  width: 160px;
+  font-family: inherit;
+}
+.reviewer-gate-hint {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--accent2);
+  line-height: 1.4;
+  max-width: 420px;
+  text-align: right;
+}
+.reviewer-registry-box {
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.reviewer-registry-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  max-height: 160px;
+  overflow: auto;
+}
+.reviewer-registry-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text);
+}
+.reviewer-registry-item:last-child { border-bottom: none; }
+.reviewer-registry-item span { word-break: break-all; }
+.main { max-width: 1200px; margin: 0 auto; padding: 40px 40px 80px; }
+
+.app-screen-nav {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 40px 0;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.screen-nav-btn {
+  padding: 10px 22px;
+  border-radius: 10px;
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .18s;
+  box-shadow: var(--shadow-sm);
+}
+.screen-nav-btn:hover { color: var(--text); border-color: rgba(13, 148, 136, 0.35); }
+.screen-nav-btn.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: rgba(13, 148, 136, 0.35);
+}
+.audit-screen-hint {
+  font-size: 12px;
+  color: var(--text3);
+  margin: -8px 0 20px;
+  line-height: 1.5;
+}
+.audit-screen-hint .link-to-reviewers {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.reviewer-screen-intro {
+  margin-bottom: 24px;
+  padding: 18px 22px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+.reviewer-screen-intro .screen-lead {
+  font-size: 14px;
+  color: var(--text2);
+  line-height: 1.65;
+  margin: 0;
+}
+.reviewer-screen-intro .screen-lead strong { color: var(--text); }
+
+.mode-tabs {
+  display: flex; gap: 4px; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 4px; width: fit-content; margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+}
+.mode-tab {
+  padding: 7px 20px; border-radius: 7px; border: none; background: transparent;
+  color: var(--text2); font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: all .18s; font-family: inherit; display: flex; align-items: center; gap: 7px;
+}
+.mode-tab svg { width: 14px; height: 14px; opacity: .6; }
+.mode-tab.active { background: var(--bg3); color: var(--text); border: 1px solid var(--border2); }
+.mode-tab.active svg { opacity: 1; }
+
+.upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.drop-zone {
+  border: 1.5px dashed var(--border2); border-radius: var(--radius); padding: 28px 24px;
+  text-align: center; cursor: pointer; transition: all .18s; background: var(--bg2);
+  position: relative; overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.drop-zone::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(13, 148, 136, 0.08) 0%, transparent 72%);
+  opacity: 0; transition: opacity .3s;
+}
+.drop-zone:hover::before, .drop-zone.drag::before { opacity: 1; }
+.drop-zone:hover, .drop-zone.drag { border-color: rgba(13, 148, 136, 0.35); background: rgba(13, 148, 136, 0.04); }
+.drop-zone.loaded { border-color: rgba(22, 163, 74, 0.45); background: rgba(22, 163, 74, 0.05); }
+.drop-zone.loaded::before {
+  background: radial-gradient(circle at 50% 0%, rgba(22, 163, 74, 0.1) 0%, transparent 72%); opacity: 1;
+}
+.drop-zone input { display: none; }
+.dz-icon {
+  width: 44px; height: 44px; margin: 0 auto 12px; border-radius: 10px;
+  border: 1px solid var(--border2); background: var(--bg3);
+  display: flex; align-items: center; justify-content: center;
+}
+.dz-icon svg { width: 20px; height: 20px; stroke: var(--text2); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.drop-zone.loaded .dz-icon { border-color: rgba(22, 163, 74, 0.35); }
+.drop-zone.loaded .dz-icon svg { stroke: var(--accent3); }
+.dz-label { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+.dz-tag {
+  display: inline-block; font-size: 10px; font-family: var(--mono);
+  padding: 2px 8px; border-radius: 4px; background: var(--bg3);
+  border: 1px solid var(--border2); color: var(--text3); margin-bottom: 8px;
+}
+.dz-sub { font-size: 12px; color: var(--text3); }
+.dz-filename {
+  margin-top: 10px; font-size: 12px; font-family: var(--mono); color: var(--accent3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 8px;
+}
+
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
+.btn-compare {
+  flex: 1; min-width: 200px; padding: 13px; border-radius: var(--radius);
+  border: 1px solid var(--border2); background: var(--bg2); color: var(--text);
+  font-size: 14px; font-weight: 600; cursor: pointer; transition: all .18s; font-family: inherit;
+  display: flex; align-items: center; justify-content: center; gap: 8px; letter-spacing: -0.1px;
+}
+.btn-compare:hover:not(:disabled) {
+  background: var(--accent-dim); border-color: rgba(13, 148, 136, 0.35); color: var(--accent);
+}
+.btn-compare:disabled { opacity: .35; cursor: not-allowed; }
+.btn-compare svg { width: 15px; height: 15px; }
+.btn-secondary {
+  padding: 13px 18px; border-radius: var(--radius); border: 1px solid var(--border2);
+  background: transparent; color: var(--text2); font-size: 13px; font-weight: 500;
+  cursor: pointer; font-family: inherit; transition: all .18s;
+}
+.btn-secondary:hover:not(:disabled) { color: var(--text); border-color: var(--border2); }
+.btn-secondary:disabled { opacity: .35; cursor: not-allowed; }
+
+.review-panel {
+  display: none;
+  margin-bottom: 28px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  box-shadow: var(--shadow-sm);
+}
+.review-panel.visible { display: block; }
+.review-panel h2 {
+  font-size: 13px; font-weight: 600; color: var(--text2);
+  margin-bottom: 14px; letter-spacing: 0.02em;
+}
+.check-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px 16px;
+  margin-bottom: 18px;
+}
+.check-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: 13px; color: var(--text); cursor: pointer;
+}
+.check-item input { margin-top: 3px; accent-color: var(--accent); }
+.verdict-row {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px;
+}
+.verdict-row span { font-size: 12px; color: var(--text3); font-family: var(--mono); margin-right: 4px; }
+.vbtn {
+  padding: 6px 14px; border-radius: 999px; border: 1px solid var(--border2);
+  background: transparent; color: var(--text2); font-size: 12px; cursor: pointer;
+  font-family: inherit; transition: all .15s;
+}
+.vbtn:hover { color: var(--text); }
+.vbtn.on { background: var(--accent-dim); color: var(--accent); border-color: rgba(13, 148, 136, 0.35); }
+.vbtn.on.warn { background: rgba(245, 158, 11, 0.15); color: var(--accent-warm); border-color: rgba(245, 158, 11, 0.35); }
+.vbtn.on.bad { background: rgba(239, 68, 68, 0.1); color: var(--accent2); border-color: rgba(239, 68, 68, 0.3); }
+.memo-label { font-size: 11px; color: var(--text3); font-family: var(--mono); margin-bottom: 6px; display: block; }
+.memo-area {
+  width: 100%; min-height: 88px; resize: vertical;
+  background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm);
+  padding: 12px 14px; color: var(--text); font-size: 13px; font-family: inherit; line-height: 1.5;
+}
+.memo-area:focus { outline: none; border-color: rgba(13, 148, 136, 0.45); }
+
+.progress-wrap {
+  margin-top: 24px; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px 24px;
+  box-shadow: var(--shadow-sm);
+}
+.progress-label { font-size: 12px; font-family: var(--mono); color: var(--text2); margin-bottom: 10px; }
+.progress-track { height: 2px; background: var(--border2); border-radius: 2px; overflow: hidden; }
+.progress-bar { height: 100%; background: var(--accent); border-radius: 2px; transition: width .4s cubic-bezier(.4,0,.2,1); }
+
+.stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin: 32px 0 24px; }
+.stat { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow-sm); }
+.stat-num { font-size: 28px; font-weight: 600; font-family: var(--mono); line-height: 1; margin-bottom: 6px; }
+.stat-num.ch { color: var(--accent-warm); }
+.stat-num.ad { color: var(--accent3); }
+.stat-num.rm { color: var(--accent2); }
+.stat-lbl { font-size: 12px; color: var(--text3); }
+
+.filter-row { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+.fbtn {
+  font-size: 12px; padding: 5px 14px; border-radius: 999px; border: 1px solid var(--border2);
+  background: transparent; cursor: pointer; color: var(--text2); transition: all .15s; font-family: inherit;
+}
+.fbtn:hover { color: var(--text); }
+.fbtn.active { background: var(--accent-dim); color: var(--accent); border-color: rgba(13, 148, 136, 0.3); }
+
+.page-block {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+  margin-bottom: 8px; overflow: hidden; transition: border-color .15s;
+  box-shadow: var(--shadow-sm);
+}
+.page-block:hover { border-color: var(--border2); }
+.page-hdr {
+  padding: 12px 18px; display: flex; align-items: center; gap: 10px;
+  cursor: pointer; user-select: none; border-bottom: 1px solid transparent; transition: border-color .15s;
+}
+.page-block.open .page-hdr { border-bottom-color: var(--border); }
+.chev {
+  width: 14px; height: 14px; stroke: var(--text3); fill: none; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round; transition: transform .2s; flex-shrink: 0;
+}
+.chev.open { transform: rotate(90deg); }
+.page-title { font-size: 13px; font-weight: 500; flex: 1; font-family: var(--mono); color: var(--text2); }
+.diff-count { font-size: 11px; color: var(--text3); margin-right: 4px; font-family: var(--mono); }
+.page-badge {
+  font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 999px;
+  letter-spacing: .02em; font-family: var(--mono);
+}
+.bd { background: rgba(250, 204, 21, 0.22); color: #92400e; border: 1px solid rgba(217, 119, 6, 0.35); }
+.bs { background: var(--bg3); color: var(--text2); border: 1px solid var(--border2); }
+.bn { background: rgba(34, 197, 94, 0.14); color: #166534; border: 1px solid rgba(22, 163, 74, 0.35); }
+.bx { background: rgba(239, 68, 68, 0.1); color: #991b1b; border: 1px solid rgba(220, 38, 38, 0.3); }
+
+.page-body { display: none; padding: 18px; }
+.page-body.open { display: block; }
+
+.slide-memo {
+  margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);
+}
+.slide-memo label { font-size: 10px; font-family: var(--mono); color: var(--text3); display: block; margin-bottom: 6px; }
+.slide-memo textarea {
+  width: 100%; min-height: 56px; resize: vertical; font-size: 12px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 8px 10px; color: var(--text); font-family: inherit;
+}
+.slide-memo textarea:focus { outline: none; border-color: rgba(13, 148, 136, 0.4); }
+
+.view-tabs { display: flex; gap: 4px; margin-bottom: 14px; }
+.vtab {
+  font-size: 11px; padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border);
+  background: transparent; cursor: pointer; color: var(--text3); transition: all .15s;
+  font-family: inherit; font-weight: 500;
+}
+.vtab:hover { color: var(--text2); border-color: var(--border2); }
+.vtab.active { background: var(--bg3); color: var(--text); border-color: var(--border2); }
+
+.img-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.col-hdr {
+  font-size: 10px; font-weight: 600; font-family: var(--mono); color: var(--text3);
+  margin-bottom: 8px; letter-spacing: .05em; text-transform: uppercase;
+  display: flex; align-items: center; gap: 6px;
+}
+.count-chip {
+  font-size: 10px; padding: 1px 7px; border-radius: 4px; font-family: var(--mono);
+  letter-spacing: 0; text-transform: none;
+}
+.chip-del { background: rgba(239, 68, 68, 0.12); color: #b91c1c; }
+.chip-add { background: rgba(234, 179, 8, 0.2); color: #854d0e; }
+
+.canvas-box { position: relative; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; background: #fff; line-height: 0; }
+.canvas-box canvas { width: 100%; display: block; }
+.hl-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+
+.legend {
+  display: flex; gap: 16px; margin-top: 12px; font-size: 11px; color: var(--text3);
+  align-items: center; flex-wrap: wrap;
+}
+.ldot { width: 20px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+.empty-state { text-align: center; padding: 48px 20px; color: var(--text3); font-size: 13px; }
+
+.compliance-banner {
+  margin-bottom: 24px;
+  padding: 20px 22px;
+  background: linear-gradient(135deg, rgba(13, 148, 136, 0.09), rgba(241, 250, 249, 0.95));
+  border: 1px solid rgba(13, 148, 136, 0.3);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+.compliance-banner .compliance-line {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.7;
+  letter-spacing: -0.02em;
+}
+.compliance-banner .compliance-sub {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text2);
+  margin-top: 10px;
+  line-height: 1.5;
+}
+.compliance-banner .compliance-copy { margin-top: 14px; }
+
+.compliance-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  align-items: flex-end;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(13, 148, 136, 0.15);
+}
+.compliance-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text2);
+  font-family: var(--mono);
+}
+.compliance-fields input[type="text"],
+.compliance-fields input[type="date"] {
+  min-width: 0;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  background: var(--bg2);
+  color: var(--text);
+}
+.compliance-fields input#complianceYear { width: 72px; }
+.compliance-fields input#complianceNum { width: 88px; font-family: var(--mono); }
+.compliance-fields input[type="date"] { width: 148px; }
+.compliance-format-hint {
+  font-size: 11px;
+  color: var(--text3);
+  font-family: var(--mono);
+  margin-bottom: 10px;
+  line-height: 1.45;
+}
+
+.diff-needed-banner {
+  margin-bottom: 24px;
+  padding: 18px 22px;
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.1), rgba(255, 251, 235, 0.95));
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+.diff-needed-banner .diff-needed-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #9a3412;
+  letter-spacing: -0.02em;
+}
+.diff-needed-banner .diff-needed-sub {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text2);
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.issue-manage-panel {
+  margin-bottom: 28px;
+  padding: 22px 24px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+.issue-manage-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+.issue-manage-desc {
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.55;
+  margin-bottom: 16px;
+}
+.issue-template { min-height: 72px; margin-bottom: 16px; font-size: 13px; }
+.issue-issue-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: flex-end;
+  margin-bottom: 14px;
+}
+.issue-issue-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text2);
+  font-family: var(--mono);
+}
+.issue-issue-row input[type="text"],
+.issue-issue-row input[type="number"],
+.issue-issue-row input[type="date"] {
+  padding: 7px 10px;
+  font-size: 13px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  background: var(--bg2);
+  color: var(--text);
+  font-family: inherit;
+}
+.issue-issue-row input#issueYear { width: 76px; }
+.issue-issue-row input#seqNextIssue { width: 100px; font-family: var(--mono); }
+.issue-issue-row input[type="date"] { width: 150px; }
+.issue-btn { flex: 0 0 auto; min-width: 0; padding: 10px 18px !important; font-size: 13px !important; }
+.issue-download-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.issue-log-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 8px;
+}
+.issue-log-scroll {
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg3);
+}
+.issue-log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  font-family: var(--mono);
+}
+.issue-log-table th,
+.issue-log-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.issue-log-table th {
+  background: var(--bg2);
+  color: var(--text3);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.issue-log-table tr:last-child td { border-bottom: none; }
+.issue-line-cell {
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.45;
+  word-break: break-all;
+  max-width: 360px;
+}
+.issue-log-empty {
+  text-align: center;
+  color: var(--text3);
+  padding: 20px !important;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.issue-lock-gate {
+  padding: 8px 4px 12px;
+}
+.issue-lock-gate .issue-manage-title { margin-bottom: 6px; }
+.issue-lock-hint {
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.55;
+  margin-bottom: 16px;
+}
+.issue-lock-forms {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 360px;
+}
+.issue-lock-forms label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text2);
+  font-family: var(--mono);
+}
+.issue-lock-forms input[type="password"] {
+  padding: 9px 12px;
+  font-size: 14px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  background: var(--bg3);
+  color: var(--text);
+  font-family: inherit;
+}
+.issue-lock-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.issue-lock-msg {
+  font-size: 12px;
+  color: var(--accent2);
+  margin-top: 10px;
+  min-height: 1.2em;
+}
+.issue-relock-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.issue-pin-change {
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  display: none;
+}
+.issue-pin-change.visible { display: block; }
+.issue-pin-change .issue-lock-forms { max-width: 100%; }
+
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--bg2); border: 1px solid var(--border2); color: var(--text);
+  padding: 10px 18px; border-radius: 999px; font-size: 13px; z-index: 100;
+  box-shadow: var(--shadow);
+  opacity: 0; transition: transform .25s, opacity .25s; pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(15, 23, 42, 0.18); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(15, 23, 42, 0.28); }
+
+@media (max-width: 700px) {
+  .app-screen-nav { padding: 16px 16px 0; }
+  .main { padding: 24px 16px 60px; }
+  .header { padding: 20px 16px 16px; }
+  .header-right { margin-left: 0; align-items: flex-start; text-align: left; }
+  .header-desc { text-align: left; }
+  .upload-grid { grid-template-columns: 1fr; }
+  .img-cols { grid-template-columns: 1fr; }
+  .stats { grid-template-columns: 1fr 1fr 1fr; }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 5v2M12 17v2M5 12h2M17 12h2M7.05 7.05l1.41 1.41M15.54 15.54l1.41 1.41M7.05 16.95l1.41-1.41M15.54 8.46l1.41-1.41"/></svg>
+    </div>
+    <span class="logo-text">광고<span>심사</span></span>
+  </div>
+  <div class="header-right">
+    <span class="header-desc">심의·승인본과 수정본(PPT/PDF)을 비교하고, 체크리스트·종합 의견을 남긴 뒤 심사표를보낼 수 있습니다. (문서 비교 엔진: DocDiff 방식)</span>
+    <div class="reviewer-row">
+      <label for="reviewerName">심사자</label>
+      <input type="text" id="reviewerName" placeholder="등록된 표시명과 동일" autocomplete="name">
+    </div>
+    <span class="reviewer-gate-hint" id="reviewerGateHint" aria-live="polite"></span>
+  </div>
+</header>
+
+<div class="app-screen-nav" role="tablist" aria-label="화면 전환">
+  <button type="button" role="tab" class="screen-nav-btn active" id="navScreenAudit" aria-selected="true" onclick="showAppScreen('audit')">문서 심사</button>
+  <button type="button" role="tab" class="screen-nav-btn" id="navScreenReviewers" aria-selected="false" onclick="showAppScreen('reviewers')">심사자 등록</button>
+</div>
+
+<main class="main" id="screenAudit">
+  <div class="mode-tabs">
+    <button type="button" class="mode-tab active" id="btnPPTX" onclick="setMode('pptx')">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1" y="1.5" width="12" height="11" rx="1.5"/><path d="M3.5 5.5h7M3.5 7.5h5"/></svg>
+      PPT 비교
+    </button>
+    <button type="button" class="mode-tab" id="btnPDF" onclick="setMode('pdf')">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 2.5A1.5 1.5 0 013.5 1h5L11 4.5V11.5A1.5 1.5 0 019.5 13h-6A1.5 1.5 0 012 11.5V2.5z"/><path d="M8.5 1v3.5H11"/></svg>
+      PDF 비교
+    </button>
+  </div>
+  <p class="audit-screen-hint">심사자 명단·PIN·심사번호 발급은 <button type="button" class="link-to-reviewers" onclick="showAppScreen('reviewers')">심사자 등록</button> 탭에서 관리합니다.</p>
+
+  <div class="upload-grid">
+    <div class="drop-zone" id="dz1"
+      onclick="document.getElementById('f1').click()"
+      ondragover="onDrag(event,this)" ondragleave="offDrag(this)" ondrop="onDrop(event,this,0)">
+      <input type="file" id="f1" accept=".pptx" onchange="loadFile(this,0)">
+      <div class="dz-icon">
+        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M8 10h8M8 14h5"/></svg>
+      </div>
+      <div class="dz-label">심의·승인본 (기준)</div>
+      <div class="dz-tag" id="tag-old">.pptx</div>
+      <div class="dz-sub">끌어다 놓기 또는 클릭하여 업로드</div>
+      <div class="dz-filename" id="fn1"></div>
+    </div>
+    <div class="drop-zone" id="dz2"
+      onclick="document.getElementById('f2').click()"
+      ondragover="onDrag(event,this)" ondragleave="offDrag(this)" ondrop="onDrop(event,this,1)">
+      <input type="file" id="f2" accept=".pptx" onchange="loadFile(this,1)">
+      <div class="dz-icon">
+        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M8 10h8M8 14h5"/><path d="M17 14v4m-2-2h4" stroke-width="2"/></svg>
+      </div>
+      <div class="dz-label">수정·제출본 (대상)</div>
+      <div class="dz-tag" id="tag-new">.pptx</div>
+      <div class="dz-sub">심의 후 변경된 버전</div>
+      <div class="dz-filename" id="fn2"></div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button type="button" class="btn-compare" id="btnCompare" disabled onclick="compare()">
+      <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7.5h13M9 3l5 4.5L9 12"/></svg>
+      비교 후 심사 기록
+    </button>
+    <button type="button" class="btn-secondary" id="btnExport" disabled onclick="exportReport()">심사표보내기</button>
+    <button type="button" class="btn-secondary" id="btnCopy" disabled onclick="copyReport()">클립보드 복사</button>
+  </div>
+
+  <div class="review-panel" id="reviewPanel">
+    <h2>심사 체크리스트 · 종합</h2>
+    <div class="check-grid" id="checkGrid"></div>
+    <div class="verdict-row">
+      <span>종합 판정</span>
+      <button type="button" class="vbtn" data-v="ok" onclick="setVerdict('ok')">승인</button>
+      <button type="button" class="vbtn" data-v="cond" onclick="setVerdict('cond')">조건부</button>
+      <button type="button" class="vbtn" data-v="reject" onclick="setVerdict('reject')">재제출</button>
+    </div>
+    <label class="memo-label" for="globalMemo">종합 심사 의견</label>
+    <textarea class="memo-area" id="globalMemo" placeholder="필수 수정 사항, 법적 검토 메모, 내부 공유용 코멘트 등"></textarea>
+  </div>
+
+  <div id="results"></div>
+</main>
+
+<div class="main" id="screenReviewers" role="main" hidden>
+  <div class="reviewer-screen-intro">
+    <p class="screen-lead"><strong>심사자 등록</strong> 화면입니다. 아래에서 PIN을 최초 등록하거나 잠금을 해제한 뒤, <strong>심사자 명단</strong>을 추가·삭제하고 심사번호·준법 문구·발급 이력을 관리할 수 있습니다. 문서 비교·심사표는 상단 <strong>문서 심사</strong> 탭에서 진행합니다. 헤더의 심사자 표시명은 명단과 <strong>완전히 동일</strong>해야 합니다.</p>
+  </div>
+  <section class="issue-manage-panel" id="issueManagePanel" aria-labelledby="issueManageHeading">
+    <div id="issueLockGate" class="issue-lock-gate">
+      <h2 class="issue-manage-title" id="issueManageHeading">심사자 전용 — PIN · 명단 · 심사번호</h2>
+      <p class="issue-lock-hint">심사자 명단 수정, 심사번호 발급, 준법 문구 편집은 <strong>등록된 심사자</strong>가 헤더에 본인 표시명을 입력하고 <strong>PIN</strong>으로 잠금 해제한 뒤에만 가능합니다. 데이터는 이 PC 브라우저에만 저장됩니다.</p>
+      <div id="issueLockFormRegister" class="issue-lock-forms" style="display:none">
+        <p class="issue-manage-desc" style="margin-bottom:0">최초 1회 PIN을 등록하고, <strong>첫 심사자</strong> 1명을 명단에 넣습니다. (PIN 4자 이상)</p>
+        <label>첫 심사자 표시명<input type="text" id="pinFirstReviewer" maxlength="80" autocomplete="name" placeholder="헤더 심사자란에 쓸 이름과 동일"></label>
+        <label>PIN<input type="password" id="pinRegA" maxlength="64" autocomplete="new-password"></label>
+        <label>PIN 확인<input type="password" id="pinRegB" maxlength="64" autocomplete="new-password"></label>
+        <div class="issue-lock-actions">
+          <button type="button" class="btn-compare issue-btn" onclick="registerReviewerPin()">PIN 등록 후 잠금 해제</button>
+        </div>
+      </div>
+      <div id="issueLockFormUnlock" class="issue-lock-forms" style="display:none">
+        <p class="issue-manage-desc" style="margin-bottom:0">헤더 <strong>심사자</strong>란에 <strong>등록된 표시명</strong>을 입력한 뒤, PIN을 입력하세요.</p>
+        <label>심사자 PIN<input type="password" id="pinUnlock" maxlength="64" autocomplete="current-password" onkeydown="if(event.key==='Enter')unlockIssueManage()"></label>
+        <div class="issue-lock-actions">
+          <button type="button" class="btn-compare issue-btn" onclick="unlockIssueManage()">잠금 해제</button>
+        </div>
+      </div>
+      <p class="issue-lock-msg" id="issueLockMsg" role="status"></p>
+    </div>
+    <div id="issueManageInner" class="issue-manage-inner" hidden>
+      <h2 class="issue-manage-title">심사자 등록 · 심사번호 발급 · 준법 문구</h2>
+      <p class="issue-manage-desc">일련번호는 <strong>발급</strong>할 때마다 1씩 증가하며 이 브라우저(localStorage)에만 누적 저장됩니다. 아래 문구 템플릿으로 최종 문장을 만들고, 발급 이력·템플릿은 각각 TXT/JSON으로 내려받을 수 있습니다.</p>
+      <div class="reviewer-registry-box">
+        <h3 class="issue-log-title">등록 심사자 명단</h3>
+        <p class="issue-manage-desc" style="margin-bottom:10px">문서 비교·심사표 작성은 아래에 등록된 <strong>표시명</strong>과 헤더 입력이 일치할 때만 가능합니다.</p>
+        <ul class="reviewer-registry-list" id="reviewerRegistryList"></ul>
+        <div class="issue-issue-row" style="margin-bottom:0">
+          <label>표시명 추가<input type="text" id="newReviewerName" maxlength="80" autocomplete="off" placeholder="예: 준법팀 김심사" onkeydown="if(event.key==='Enter')addReviewerFromUI()"></label>
+          <button type="button" class="btn-secondary issue-btn" onclick="addReviewerFromUI()">명단에 추가</button>
+        </div>
+      </div>
+      <label class="memo-label" for="lineTemplateEditor">준법 문구 템플릿</label>
+      <textarea class="memo-area issue-template" id="lineTemplateEditor" rows="3" spellcheck="false" placeholder="{y}=연도 {n}=일련번호 {s}=시작일 {e}=종료일 (YYYY.MM.DD)"></textarea>
+      <p class="compliance-format-hint" style="margin-top:-8px;margin-bottom:12px;">플레이스홀더: <code>{y}</code> <code>{n}</code> <code>{s}</code> <code>{e}</code> — 예: <code>제{y}-{n}호({s}~{e})</code></p>
+      <div class="issue-issue-row">
+        <label>연도 (YYYY)<input type="text" id="issueYear" maxlength="4" inputmode="numeric" value="2026" autocomplete="off"></label>
+        <label>시작일<input type="date" id="issueStart" value="2026-04-01"></label>
+        <label>종료일<input type="date" id="issueEnd" value="2026-06-30"></label>
+        <label>다음 발급 번호 (###)<input type="number" id="seqNextIssue" min="1" step="1" value="1" title="이번에 발급에 사용할 번호. 발급 후 자동으로 +1 됩니다." onchange="onSeqNextEdited()"></label>
+        <button type="button" class="btn-compare issue-btn" onclick="issueSerial()">심사번호 발급</button>
+      </div>
+      <div class="issue-download-row">
+        <button type="button" class="btn-secondary" onclick="downloadIssueLogTxt()">발급 이력 TXT</button>
+        <button type="button" class="btn-secondary" onclick="downloadIssueLogJson()">발급 이력 JSON</button>
+        <button type="button" class="btn-secondary" onclick="downloadLineTemplateTxt()">문구 템플릿 TXT</button>
+        <button type="button" class="btn-secondary" onclick="saveLineTemplate()">문구 템플릿 저장</button>
+      </div>
+      <div class="issue-log-wrap">
+        <h3 class="issue-log-title">발급 이력 (최근 50건, 최신 위)</h3>
+        <div class="issue-log-scroll">
+          <table class="issue-log-table">
+            <thead><tr><th>#</th><th>일시</th><th>연도-번호</th><th>기간</th><th>전체 문구</th></tr></thead>
+            <tbody id="issueLogBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="issue-relock-row">
+        <button type="button" class="btn-secondary" onclick="lockIssueManage()">잠그기 (관리 화면 닫기)</button>
+        <button type="button" class="btn-secondary" onclick="togglePinChange(true)">PIN 변경</button>
+        <button type="button" class="btn-secondary" onclick="showAppScreen('audit')">문서 심사로 이동</button>
+      </div>
+      <div id="issuePinChange" class="issue-pin-change">
+        <p class="memo-label" style="margin-bottom:10px">PIN 변경</p>
+        <div class="issue-lock-forms">
+          <label>현재 PIN<input type="password" id="pinChangeOld" maxlength="64" autocomplete="current-password"></label>
+          <label>새 PIN<input type="password" id="pinChangeNew" maxlength="64" autocomplete="new-password"></label>
+          <label>새 PIN 확인<input type="password" id="pinChangeNew2" maxlength="64" autocomplete="new-password"></label>
+          <div class="issue-lock-actions">
+            <button type="button" class="btn-compare issue-btn" onclick="submitPinChange()">변경 저장</button>
+            <button type="button" class="btn-secondary" onclick="togglePinChange(false)">취소</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+  if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+  buildChecklist();
+  refreshIssueLockUI();
+  initIssueManageUI();
+  const rn = document.getElementById('reviewerName');
+  if (rn) {
+    rn.addEventListener('input', function() {
+      updateCompareButtonState();
+    });
+  }
+  updateCompareButtonState();
+});
+
+/** 기준본과 수정본 비교에 차이가 있을 때 안내 멘트 */
+const ADDITIONAL_REVIEW_MESSAGE = '추가 심사가 필요합니다';
+
+const CHECKLIST_ITEMS = [
+  { id: 'legal', label: '필수 법적 표기(광고 식별, 연령, 과장 금지 문구 등) 적정' },
+  { id: 'claim', label: '허위·과장·기만 소비자 우려 표현 없음' },
+  { id: 'compare', label: '비교·우월 표현 시 근거·범위 명시' },
+  { id: 'third', label: '타사·타인 비방·모방 우려 없음' },
+  { id: 'ip', label: '저작권·초상권·상표 사용 이슈 없음' },
+  { id: 'visual', label: '시각 요소(이미지·영상 캡처)가 심의 범위와 일치' },
+];
+
+let mode = 'pptx';
+const files = [null, null];
+let currentFilter = 'all';
+let diffPages = [];
+let verdict = '';
+const SCALE = 1.6;
+const slideMemos = {};
+
+function showAppScreen(screen) {
+  const audit = document.getElementById('screenAudit');
+  const rev = document.getElementById('screenReviewers');
+  const na = document.getElementById('navScreenAudit');
+  const nr = document.getElementById('navScreenReviewers');
+  if (!audit || !rev) return;
+  const isAudit = screen === 'audit';
+  audit.hidden = !isAudit;
+  rev.hidden = isAudit;
+  if (na) {
+    na.classList.toggle('active', isAudit);
+    na.setAttribute('aria-selected', isAudit ? 'true' : 'false');
+  }
+  if (nr) {
+    nr.classList.toggle('active', !isAudit);
+    nr.setAttribute('aria-selected', !isAudit ? 'true' : 'false');
+  }
+  if (!isAudit) {
+    refreshIssueLockUI();
+    initIssueManageUI();
+    renderReviewerRegistryList();
+  }
+  try {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (e) {
+    window.scrollTo(0, 0);
+  }
+}
+
+function buildChecklist() {
+  const g = document.getElementById('checkGrid');
+  g.innerHTML = CHECKLIST_ITEMS.map(it => `
+    <label class="check-item">
+      <input type="checkbox" id="chk_${it.id}" data-chk="${it.id}">
+      <span>${it.label}</span>
+    </label>
+  `).join('');
+}
+
+function setVerdict(v) {
+  verdict = verdict === v ? '' : v;
+  document.querySelectorAll('.vbtn').forEach(b => {
+    const key = b.getAttribute('data-v');
+    b.classList.remove('on', 'warn', 'bad');
+    if (verdict === key) {
+      b.classList.add('on');
+      if (key === 'ok') b.classList.add('on');
+      else if (key === 'cond') b.classList.add('warn');
+      else if (key === 'reject') b.classList.add('bad');
+    }
+  });
+}
+
+function showReviewPanel(show) {
+  const p = document.getElementById('reviewPanel');
+  p.classList.toggle('visible', !!show);
+  document.getElementById('btnExport').disabled = !show;
+  document.getElementById('btnCopy').disabled = !show;
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function setMode(m) {
+  mode = m;
+  files[0] = null; files[1] = null;
+  ['fn1','fn2'].forEach(id => document.getElementById(id).textContent = '');
+  ['dz1','dz2'].forEach(id => document.getElementById(id).classList.remove('loaded'));
+  document.getElementById('results').innerHTML = '';
+  document.getElementById('btnCompare').disabled = true;
+  showReviewPanel(false);
+  Object.keys(slideMemos).forEach(k => delete slideMemos[k]);
+  verdict = '';
+  setVerdict('');
+  document.getElementById('globalMemo').value = '';
+  CHECKLIST_ITEMS.forEach(it => { const el = document.getElementById('chk_' + it.id); if (el) el.checked = false; });
+
+  const ext = m === 'pdf' ? '.pdf' : '.pptx';
+  document.getElementById('f1').accept = ext;
+  document.getElementById('f2').accept = ext;
+  document.getElementById('tag-old').textContent = ext;
+  document.getElementById('tag-new').textContent = ext;
+  document.getElementById('btnPPTX').classList.toggle('active', m === 'pptx');
+  document.getElementById('btnPDF').classList.toggle('active', m === 'pdf');
+  updateCompareButtonState();
+}
+
+function onDrag(e, el) { e.preventDefault(); el.classList.add('drag'); }
+function offDrag(el) { el.classList.remove('drag'); }
+function onDrop(e, el, idx) {
+  e.preventDefault(); el.classList.remove('drag');
+  const f = e.dataTransfer.files[0]; if (!f) return;
+  if (!f.name.toLowerCase().endsWith(mode === 'pdf' ? '.pdf' : '.pptx')) return;
+  setFile(f, idx);
+}
+function loadFile(inp, idx) { if (inp.files[0]) setFile(inp.files[0], idx); }
+function setFile(f, idx) {
+  files[idx] = f;
+  document.getElementById('fn' + (idx + 1)).textContent = f.name;
+  document.getElementById('dz' + (idx + 1)).classList.add('loaded');
+  updateCompareButtonState();
+}
+
+async function renderPDFPages(f) {
+  const buf = await f.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const pages = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const vp = page.getViewport({ scale: SCALE });
+    const canvas = document.createElement('canvas');
+    canvas.width = vp.width; canvas.height = vp.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+    const tc = await page.getTextContent({ includeMarkedContent: false });
+    const words = [];
+    for (const item of tc.items) {
+      const s = (item.str || '').trim(); if (!s) continue;
+      const [a,,, d, e, ff] = item.transform;
+      const cX = e * SCALE;
+      const cY = vp.height - ff * SCALE;
+      const iW = item.width * SCALE;
+      const iH = Math.abs(item.height || d) * SCALE || Math.abs(d) * SCALE || 12;
+      const parts = s.split(/\s+/).filter(Boolean);
+      const charW = iW / Math.max(s.replace(/\s+/g,'').length, 1);
+      let cx = cX;
+      for (const word of parts) {
+        const ww = charW * word.length;
+        words.push({ text: word, x: cx, y: cY - iH, w: ww, h: iH });
+        cx += ww + charW;
+      }
+    }
+    pages.push({ num: i, canvas, words, W: vp.width, H: vp.height });
+  }
+  return pages;
+}
+
+async function renderPPTXPages(f) {
+  const buf = await f.arrayBuffer();
+  const zip = await JSZip.loadAsync(buf);
+  const entries = Object.keys(zip.files)
+    .filter(k => /^ppt\/slides\/slide\d+\.xml$/.test(k))
+    .sort((a, b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
+  const pages = [];
+  const W = 960, H = 540;
+  for (const path of entries) {
+    const xml = await zip.files[path].async('string');
+    const doc = new DOMParser().parseFromString(xml, 'text/xml');
+    const { canvas, words } = drawPPTX(doc, W, H);
+    pages.push({ num: parseInt(path.match(/\d+/)[0]), canvas, words, W, H });
+  }
+  return pages;
+}
+
+function drawPPTX(doc, W, H) {
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+  const words = [];
+  const EMU_W = 9144000, EMU_H = 5143500;
+  doc.querySelectorAll('sp').forEach(sp => {
+    const offEl = sp.querySelector('off');
+    const extEl = sp.querySelector('ext');
+    if (!offEl || !extEl) return;
+    const spX = parseInt(offEl.getAttribute('x') || 0) / EMU_W * W;
+    const spY = parseInt(offEl.getAttribute('y') || 0) / EMU_H * H;
+    const spW = parseInt(extEl.getAttribute('cx') || 0) / EMU_W * W;
+    const txBody = sp.querySelector('txBody');
+    if (!txBody) return;
+    let curY = spY;
+    txBody.querySelectorAll('p').forEach(p => {
+      const runs = p.querySelectorAll('r');
+      if (!runs.length) { curY += 16; return; }
+      let lineStr = '', fs = 14, bold = false;
+      runs.forEach(r => {
+        const rPr = r.querySelector('rPr');
+        if (rPr) {
+          const sz = rPr.getAttribute('sz'); if (sz) fs = parseInt(sz) / 100;
+          bold = rPr.getAttribute('b') === '1';
+        }
+        lineStr += (r.querySelector('t')?.textContent || '');
+      });
+      if (!lineStr.trim()) { curY += fs * 1.4; return; }
+      ctx.font = `${bold ? 'bold ' : ''}${fs}px sans-serif`;
+      ctx.fillStyle = '#111111';
+      const maxW = spW || W - spX - 20;
+      const lines = wrapLines(ctx, lineStr, maxW);
+      lines.forEach(line => {
+        if (curY > H) return;
+        ctx.fillText(line, spX, curY + fs);
+        let cx = spX;
+        line.split(/\s+/).filter(Boolean).forEach(word => {
+          const ww = ctx.measureText(word).width;
+          words.push({ text: word, x: cx, y: curY, w: ww, h: fs * 1.2 });
+          cx += ww + ctx.measureText(' ').width;
+        });
+        curY += fs * 1.5;
+      });
+      curY += 3;
+    });
+  });
+  return { canvas, words };
+}
+
+function wrapLines(ctx, text, maxW) {
+  const ws = text.split(' '); const lines = []; let cur = '';
+  ws.forEach(w => {
+    const t = cur ? cur + ' ' + w : w;
+    if (ctx.measureText(t).width > maxW && cur) { lines.push(cur); cur = w; }
+    else cur = t;
+  });
+  if (cur) lines.push(cur);
+  return lines.length ? lines : [text];
+}
+
+function lcs(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({ length: m + 1 }, () => new Int32Array(n + 1));
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1]+1 : Math.max(dp[i-1][j], dp[i][j-1]);
+  let i = m, j = n; const ops = [];
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && a[i-1] === b[j-1]) { ops.push({ t:'eq', ai:i-1, bi:j-1 }); i--; j--; }
+    else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) { ops.push({ t:'add', bi:j-1 }); j--; }
+    else { ops.push({ t:'del', ai:i-1 }); i--; }
+  }
+  return ops.reverse();
+}
+
+function makeHL(page, idxs, color) {
+  const hl = document.createElement('canvas');
+  hl.width = page.W; hl.height = page.H;
+  const ctx = hl.getContext('2d');
+  ctx.clearRect(0, 0, page.W, page.H);
+  idxs.forEach(idx => {
+    const w = page.words[idx]; if (!w) return;
+    const P = 2;
+    ctx.fillStyle = color;
+    ctx.fillRect(w.x - P, w.y - P, w.w + P*2, w.h + P*2);
+  });
+  return hl;
+}
+
+function diffPage(op, np) {
+  const ow = op.words.map(w => w.text.toLowerCase().replace(/[^\w가-힣]/g, ''));
+  const nw = np.words.map(w => w.text.toLowerCase().replace(/[^\w가-힣]/g, ''));
+  const ops = lcs(ow, nw);
+  const oldIdx = new Set(), newIdx = new Set();
+  ops.forEach(op => {
+    if (op.t === 'del') oldIdx.add(op.ai);
+    else if (op.t === 'add') newIdx.add(op.bi);
+  });
+  const oldHL = makeHL(op, [...oldIdx], 'rgba(255,80,80,0.42)');
+  const newHL = makeHL(np, [...newIdx], 'rgba(248,230,0,0.58)');
+  return { oldHL, newHL, oldCount: oldIdx.size, newCount: newIdx.size, changed: oldIdx.size > 0 || newIdx.size > 0 };
+}
+
+function unitLabel() { return mode === 'pdf' ? '페이지' : '슬라이드'; }
+
+function drawTo(id, srcCanvas) {
+  const el = document.getElementById(id);
+  if (!el || !srcCanvas) return;
+  el.width = srcCanvas.width; el.height = srcCanvas.height;
+  el.getContext('2d').drawImage(srcCanvas, 0, 0);
+}
+
+function paintAll() {
+  diffPages.forEach((p, idx) => {
+    if (p.oldCanvas) drawTo('oc' + idx, p.oldCanvas);
+    if (p.newCanvas) drawTo('nc' + idx, p.newCanvas);
+    if (p.oldHL) drawTo('oh' + idx, p.oldHL);
+    if (p.newHL) drawTo('nh' + idx, p.newHL);
+    if (p.oldCanvas) drawTo('oc2_' + idx, p.oldCanvas);
+    if (p.newCanvas) drawTo('nc2_' + idx, p.newCanvas);
+  });
+}
+
+function slideMemoBlock(idx, num) {
+  const key = String(num);
+  const val = slideMemos[key] || '';
+  return `<div class="slide-memo">
+    <label for="sm${idx}">${unitLabel()} ${String(num).padStart(2,'0')} 심사 메모</label>
+    <textarea id="sm${idx}" data-slide="${key}" oninput="onSlideMemo(this)">${escapeHtml(val)}</textarea>
+  </div>`;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+}
+
+function onSlideMemo(el) {
+  slideMemos[el.getAttribute('data-slide')] = el.value;
+}
+
+function buildHTML(p, idx) {
+  const { status, num } = p;
+  const bc = status==='same'?'bs':status==='new'?'bn':status==='del'?'bx':'bd';
+  const bt = status==='same'?'변경 없음':status==='new'?'추가됨':status==='del'?'삭제됨':'변경됨';
+  let body = '';
+  if (status === 'same') {
+    body = `<div class="img-cols">
+      <div><div class="col-hdr">심의·승인본</div><div class="canvas-box"><canvas id="oc${idx}"></canvas></div></div>
+      <div><div class="col-hdr">수정·제출본</div><div class="canvas-box"><canvas id="nc${idx}"></canvas></div></div>
+    </div>`;
+  } else if (status === 'new') {
+    body = `<div style="max-width:52%">
+      <div class="col-hdr">수정·제출본 <span class="count-chip chip-add">새로 추가됨</span></div>
+      <div class="canvas-box"><canvas id="nc${idx}"></canvas></div></div>`;
+  } else if (status === 'del') {
+    body = `<div style="max-width:52%;opacity:.45">
+      <div class="col-hdr">심의·승인본 <span class="count-chip chip-del">삭제됨</span></div>
+      <div class="canvas-box"><canvas id="oc${idx}"></canvas></div></div>`;
+  } else {
+    body = `
+      <div class="view-tabs" id="tabs${idx}">
+        <button type="button" class="vtab active" onclick="switchTab(${idx},'hl')">형광 하이라이트</button>
+        <button type="button" class="vtab" onclick="switchTab(${idx},'side')">원본 나란히 보기</button>
+      </div>
+      <div id="vhl${idx}">
+        <div class="img-cols">
+          <div>
+            <div class="col-hdr">심의·승인본
+              <span class="count-chip chip-del">${p.oldCount}개 삭제/변경</span>
+            </div>
+            <div class="canvas-box" style="position:relative">
+              <canvas id="oc${idx}"></canvas>
+              <canvas id="oh${idx}" class="hl-layer"></canvas>
+            </div>
+          </div>
+          <div>
+            <div class="col-hdr">수정·제출본
+              <span class="count-chip chip-add">${p.newCount}개 추가/변경</span>
+            </div>
+            <div class="canvas-box" style="position:relative">
+              <canvas id="nc${idx}"></canvas>
+              <canvas id="nh${idx}" class="hl-layer"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="legend">
+          <div class="ldot" style="background:rgba(248,230,0,0.7)"></div><span>추가·변경 단어</span>
+          <div class="ldot" style="background:rgba(255,80,80,0.55)"></div><span>삭제·변경 단어</span>
+        </div>
+      </div>
+      <div id="vside${idx}" style="display:none">
+        <div class="img-cols">
+          <div><div class="col-hdr">심의·승인본</div><div class="canvas-box"><canvas id="oc2_${idx}"></canvas></div></div>
+          <div><div class="col-hdr">수정·제출본</div><div class="canvas-box"><canvas id="nc2_${idx}"></canvas></div></div>
+        </div>
+      </div>`;
+  }
+  body += slideMemoBlock(idx, num);
+  return `<div class="page-block" id="pb${idx}">
+    <div class="page-hdr" onclick="togglePage(${idx})">
+      <svg class="chev" id="chev${idx}" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      <span class="page-title">${unitLabel()} ${String(num).padStart(2,'0')}</span>
+      ${status==='diff'?`<span class="diff-count">∆ ${p.oldCount+p.newCount}</span>`:''}
+      <span class="page-badge ${bc}">${bt}</span>
+    </div>
+    <div class="page-body" id="body${idx}">${body}</div>
+  </div>`;
+}
+
+function switchTab(idx, view) {
+  document.getElementById('vhl'+idx).style.display = view==='hl' ? 'block' : 'none';
+  document.getElementById('vside'+idx).style.display = view==='side' ? 'block' : 'none';
+  document.getElementById('tabs'+idx).querySelectorAll('.vtab')
+    .forEach((t,i) => t.classList.toggle('active', (i===0&&view==='hl')||(i===1&&view==='side')));
+  if (view === 'side') {
+    drawTo('oc2_'+idx, diffPages[idx].oldCanvas);
+    drawTo('nc2_'+idx, diffPages[idx].newCanvas);
+  }
+}
+
+function togglePage(idx) {
+  const body = document.getElementById('body'+idx);
+  const chev = document.getElementById('chev'+idx);
+  const block = document.getElementById('pb'+idx);
+  body.classList.toggle('open');
+  chev.classList.toggle('open');
+  block.classList.toggle('open');
+  setTimeout(() => paintAll(), 40);
+}
+
+function setFilter(f) { currentFilter = f; renderResults(); }
+
+function dateToDotYmd(ymd) {
+  if (!ymd || !/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return '';
+  return ymd.replace(/-/g, '.');
+}
+
+const LS_ISSUE_LOG = 'ar_issue_log';
+const LS_NEXT_SEQ = 'ar_next_seq';
+const LS_LINE_TMPL = 'ar_line_template';
+const LS_REVIEWER_PIN = 'ar_reviewer_pin';
+const LS_REVIEWER_REGISTRY = 'ar_reviewer_registry';
+const SS_MGMT_UNLOCKED = 'ar_mgmt_unlocked';
+
+function getReviewerRegistry() {
+  try {
+    const raw = localStorage.getItem(LS_REVIEWER_REGISTRY);
+    if (!raw) return [];
+    const a = JSON.parse(raw);
+    if (!Array.isArray(a)) return [];
+    return [...new Set(a.map(function(x) { return String(x).trim(); }).filter(Boolean))];
+  } catch (e) {
+    return [];
+  }
+}
+
+function setReviewerRegistry(names) {
+  const u = [...new Set(names.map(function(x) { return String(x).trim(); }).filter(Boolean))];
+  try {
+    localStorage.setItem(LS_REVIEWER_REGISTRY, JSON.stringify(u));
+  } catch (e) {}
+}
+
+function isRegisteredReviewer(name) {
+  const n = String(name || '').trim();
+  if (!n) return false;
+  const reg = getReviewerRegistry();
+  if (reg.length === 0) return true;
+  return reg.indexOf(n) >= 0;
+}
+
+function requireRegisteredReviewerOrToast() {
+  const reg = getReviewerRegistry();
+  if (reg.length === 0) return true;
+  const name = (document.getElementById('reviewerName') && document.getElementById('reviewerName').value.trim()) || '';
+  if (!name) {
+    toast('등록된 심사자만 심사할 수 있습니다. 헤더에 본인 표시명을 입력하세요.');
+    return false;
+  }
+  if (!isRegisteredReviewer(name)) {
+    toast('등록되지 않은 표시명입니다. 심사자 명단과 동일하게 입력하세요.');
+    return false;
+  }
+  return true;
+}
+
+function updateReviewerGateHint() {
+  const el = document.getElementById('reviewerGateHint');
+  if (!el) return;
+  const reg = getReviewerRegistry();
+  if (reg.length === 0) {
+    el.textContent = '';
+    return;
+  }
+  const name = (document.getElementById('reviewerName') && document.getElementById('reviewerName').value.trim()) || '';
+  if (!name) el.textContent = '등록된 심사자 표시명을 입력해야 비교·심사표를 사용할 수 있습니다.';
+  else if (!isRegisteredReviewer(name)) el.textContent = '명단에 없는 표시명입니다. 담당자에게 등록을 요청하거나 표기를 확인하세요.';
+  else el.textContent = '';
+}
+
+function updateCompareButtonState() {
+  const btn = document.getElementById('btnCompare');
+  if (!btn) return;
+  const hasFiles = !!(files[0] && files[1]);
+  const reg = getReviewerRegistry();
+  const name = (document.getElementById('reviewerName') && document.getElementById('reviewerName').value.trim()) || '';
+  let ok = hasFiles;
+  if (ok && reg.length > 0) ok = isRegisteredReviewer(name);
+  btn.disabled = !ok;
+  updateReviewerGateHint();
+}
+
+function renderReviewerRegistryList() {
+  const ul = document.getElementById('reviewerRegistryList');
+  if (!ul) return;
+  const reg = getReviewerRegistry();
+  if (!reg.length) {
+    ul.innerHTML = '<li class="issue-log-empty" style="padding:12px;">등록된 심사자가 없습니다. PIN 최초 등록 시 1명이 추가되거나, 여기서 등록하세요.</li>';
+    return;
+  }
+  ul.innerHTML = reg.map(function(r) {
+    return '<li class="reviewer-registry-item"><span>' + escapeHtml(r) + '</span><button type="button" class="btn-secondary" style="padding:4px 10px;font-size:11px" onclick="removeReviewerFromList(' + JSON.stringify(r) + ')">삭제</button></li>';
+  }).join('');
+}
+
+function addReviewerFromUI() {
+  if (!requireIssueMgmtOrToast()) return;
+  const inp = document.getElementById('newReviewerName');
+  if (!inp) return;
+  const v = inp.value.trim();
+  if (!v) {
+    toast('표시명을 입력하세요');
+    return;
+  }
+  const reg = getReviewerRegistry();
+  if (reg.indexOf(v) >= 0) {
+    toast('이미 등록된 심사자입니다');
+    return;
+  }
+  reg.push(v);
+  setReviewerRegistry(reg);
+  inp.value = '';
+  renderReviewerRegistryList();
+  updateCompareButtonState();
+  toast('심사자를 등록했습니다');
+}
+
+function removeReviewerFromList(displayName) {
+  if (!requireIssueMgmtOrToast()) return;
+  const reg = getReviewerRegistry();
+  if (reg.length <= 1) {
+    toast('최소 1명의 심사자는 유지해야 합니다');
+    return;
+  }
+  const next = reg.filter(function(r) { return r !== displayName; });
+  if (next.length === reg.length) {
+    toast('해당 심사자를 찾을 수 없습니다');
+    return;
+  }
+  setReviewerRegistry(next);
+  renderReviewerRegistryList();
+  updateCompareButtonState();
+  toast('등록을 해제했습니다');
+}
+
+function getStoredPin() {
+  try {
+    return localStorage.getItem(LS_REVIEWER_PIN);
+  } catch (e) {
+    return null;
+  }
+}
+
+function isIssueMgmtUnlocked() {
+  try {
+    return sessionStorage.getItem(SS_MGMT_UNLOCKED) === '1' && !!getStoredPin();
+  } catch (e) {
+    return false;
+  }
+}
+
+function setIssueLockMsg(text) {
+  const el = document.getElementById('issueLockMsg');
+  if (el) el.textContent = text || '';
+}
+
+function refreshIssueLockUI() {
+  const gate = document.getElementById('issueLockGate');
+  const inner = document.getElementById('issueManageInner');
+  const reg = document.getElementById('issueLockFormRegister');
+  const unl = document.getElementById('issueLockFormUnlock');
+  if (!gate || !inner || !reg || !unl) return;
+  setIssueLockMsg('');
+  const pinSet = !!getStoredPin();
+  const unlocked = isIssueMgmtUnlocked();
+  if (unlocked) {
+    gate.style.display = 'none';
+    inner.hidden = false;
+    return;
+  }
+  inner.hidden = true;
+  gate.style.display = 'block';
+  reg.style.display = pinSet ? 'none' : 'block';
+  unl.style.display = pinSet ? 'block' : 'none';
+  const pu = document.getElementById('pinUnlock');
+  if (pu) pu.value = '';
+}
+
+function registerReviewerPin() {
+  const a = document.getElementById('pinRegA') && document.getElementById('pinRegA').value;
+  const b = document.getElementById('pinRegB') && document.getElementById('pinRegB').value;
+  const firstName = (document.getElementById('pinFirstReviewer') && document.getElementById('pinFirstReviewer').value.trim()) || '';
+  setIssueLockMsg('');
+  if (!firstName) {
+    setIssueLockMsg('첫 심사자 표시명을 입력하세요. (헤더 심사자란과 동일한 문자열)');
+    return;
+  }
+  if (!a || a.length < 4) {
+    setIssueLockMsg('PIN은 4자 이상 입력하세요.');
+    return;
+  }
+  if (a !== b) {
+    setIssueLockMsg('PIN과 확인 입력이 일치하지 않습니다.');
+    return;
+  }
+  try {
+    localStorage.setItem(LS_REVIEWER_PIN, a);
+    setReviewerRegistry([firstName]);
+    sessionStorage.setItem(SS_MGMT_UNLOCKED, '1');
+    document.getElementById('pinRegA').value = '';
+    document.getElementById('pinRegB').value = '';
+    const pr = document.getElementById('pinFirstReviewer');
+    if (pr) pr.value = '';
+    const rn = document.getElementById('reviewerName');
+    if (rn) rn.value = firstName;
+    refreshIssueLockUI();
+    initIssueManageUI();
+    renderReviewerRegistryList();
+    updateCompareButtonState();
+    if (typeof diffPages !== 'undefined' && diffPages.length) renderResults();
+    updateCompareButtonState();
+    showAppScreen('reviewers');
+    toast('PIN·심사자 명단을 등록했습니다. 이 탭에서 계속 관리할 수 있습니다.');
+  } catch (e) {
+    setIssueLockMsg('저장에 실패했습니다. 브라우저 저장소를 확인하세요.');
+  }
+}
+
+function unlockIssueManage() {
+  setIssueLockMsg('');
+  const name = (document.getElementById('reviewerName') && document.getElementById('reviewerName').value.trim()) || '';
+  if (!name) {
+    setIssueLockMsg('헤더의 「심사자」란에 등록된 표시명을 입력한 뒤 다시 시도하세요.');
+    return;
+  }
+  if (getReviewerRegistry().length > 0 && !isRegisteredReviewer(name)) {
+    setIssueLockMsg('등록되지 않은 심사자입니다. 표시명을 명단과 동일하게 입력하세요.');
+    return;
+  }
+  const pin = document.getElementById('pinUnlock') && document.getElementById('pinUnlock').value;
+  const stored = getStoredPin();
+  if (!stored || pin !== stored) {
+    setIssueLockMsg('PIN이 올바르지 않습니다.');
+    return;
+  }
+  try {
+    sessionStorage.setItem(SS_MGMT_UNLOCKED, '1');
+    document.getElementById('pinUnlock').value = '';
+    refreshIssueLockUI();
+    initIssueManageUI();
+    if (typeof diffPages !== 'undefined' && diffPages.length) renderResults();
+    updateCompareButtonState();
+    toast('심사자 화면을 열었습니다');
+  } catch (e) {
+    setIssueLockMsg('잠금 해제에 실패했습니다.');
+  }
+}
+
+function lockIssueManage() {
+  try {
+    sessionStorage.removeItem(SS_MGMT_UNLOCKED);
+  } catch (e) {}
+  togglePinChange(false);
+  refreshIssueLockUI();
+  if (typeof diffPages !== 'undefined' && diffPages.length) renderResults();
+  updateCompareButtonState();
+  toast('심사자 전용 영역을 잠갔습니다');
+}
+
+function togglePinChange(show) {
+  const box = document.getElementById('issuePinChange');
+  if (!box) return;
+  box.classList.toggle('visible', !!show);
+  if (!show) {
+    ['pinChangeOld', 'pinChangeNew', 'pinChangeNew2'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+  }
+}
+
+function submitPinChange() {
+  if (!isIssueMgmtUnlocked()) {
+    toast('먼저 심사자 화면을 여세요');
+    return;
+  }
+  const oldP = document.getElementById('pinChangeOld') && document.getElementById('pinChangeOld').value;
+  const nw = document.getElementById('pinChangeNew') && document.getElementById('pinChangeNew').value;
+  const nw2 = document.getElementById('pinChangeNew2') && document.getElementById('pinChangeNew2').value;
+  if (oldP !== getStoredPin()) {
+    toast('현재 PIN이 올바르지 않습니다');
+    return;
+  }
+  if (!nw || nw.length < 4) {
+    toast('새 PIN은 4자 이상이어야 합니다');
+    return;
+  }
+  if (nw !== nw2) {
+    toast('새 PIN과 확인이 일치하지 않습니다');
+    return;
+  }
+  try {
+    localStorage.setItem(LS_REVIEWER_PIN, nw);
+    togglePinChange(false);
+    toast('PIN을 변경했습니다');
+  } catch (e) {
+    toast('저장 실패');
+  }
+}
+
+function requireIssueMgmtOrToast() {
+  if (isIssueMgmtUnlocked()) return true;
+  toast('심사자 전용입니다. 상단에서 PIN으로 잠금을 해제하세요.');
+  return false;
+}
+
+function defaultLineTemplate() {
+  return '한화투자증권 준법감시인 심사필 제{y}-{n}호({s}~{e}) 심의내용 임의변경 사용을 엄격히 금지합니다.';
+}
+
+function getLineTemplate() {
+  const ta = document.getElementById('lineTemplateEditor');
+  if (ta && ta.value.trim()) return ta.value.trim();
+  try {
+    const s = localStorage.getItem(LS_LINE_TMPL);
+    if (s != null && String(s).trim()) return String(s).trim();
+  } catch (e) {}
+  return defaultLineTemplate();
+}
+
+function saveLineTemplate() {
+  if (!requireIssueMgmtOrToast()) return;
+  const ta = document.getElementById('lineTemplateEditor');
+  if (!ta) return;
+  try {
+    localStorage.setItem(LS_LINE_TMPL, ta.value);
+    toast('문구 템플릿을 브라우저에 저장했습니다');
+  } catch (e) {
+    toast('저장 실패');
+  }
+}
+
+function renderLineTemplate(tpl, y, n, s, e) {
+  return String(tpl)
+    .replace(/\{y\}/g, String(y))
+    .replace(/\{n\}/g, String(n))
+    .replace(/\{s\}/g, String(s))
+    .replace(/\{e\}/g, String(e));
+}
+
+function getIssueLog() {
+  try {
+    const raw = localStorage.getItem(LS_ISSUE_LOG);
+    if (!raw) return [];
+    const a = JSON.parse(raw);
+    return Array.isArray(a) ? a : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function setIssueLog(arr) {
+  localStorage.setItem(LS_ISSUE_LOG, JSON.stringify(arr));
+}
+
+function getSavedNextSeq() {
+  try {
+    const v = localStorage.getItem(LS_NEXT_SEQ);
+    if (v != null && v !== '') {
+      const n = parseInt(v, 10);
+      if (Number.isFinite(n) && n >= 1) return n;
+    }
+  } catch (e) {}
+  return 1;
+}
+
+function setSavedNextSeq(n) {
+  try {
+    localStorage.setItem(LS_NEXT_SEQ, String(Math.max(1, parseInt(n, 10) || 1)));
+  } catch (e) {}
+}
+
+function initIssueManageUI() {
+  const ta = document.getElementById('lineTemplateEditor');
+  if (!ta) return;
+  try {
+    const s = localStorage.getItem(LS_LINE_TMPL);
+    ta.value = (s != null && String(s).trim() !== '') ? String(s) : defaultLineTemplate();
+  } catch (e) {
+    ta.value = defaultLineTemplate();
+  }
+  ta.onchange = function() {
+    if (!isIssueMgmtUnlocked()) return;
+    try {
+      localStorage.setItem(LS_LINE_TMPL, ta.value);
+    } catch (err) {}
+  };
+  const sq = document.getElementById('seqNextIssue');
+  if (sq) sq.value = String(getSavedNextSeq());
+  renderIssueLogTable();
+  renderReviewerRegistryList();
+}
+
+function onSeqNextEdited() {
+  if (!isIssueMgmtUnlocked()) return;
+  const sq = document.getElementById('seqNextIssue');
+  if (!sq) return;
+  const n = parseInt(sq.value, 10);
+  if (Number.isFinite(n) && n >= 1) setSavedNextSeq(n);
+}
+
+function renderIssueLogTable() {
+  const tb = document.getElementById('issueLogBody');
+  if (!tb) return;
+  const full = getIssueLog();
+  const log = full.slice(-50).reverse();
+  if (!log.length) {
+    tb.innerHTML = '<tr><td colspan="5" class="issue-log-empty">아직 발급 이력이 없습니다. 위에서 날짜·번호를 확인한 뒤 「심사번호 발급」을 누르세요.</td></tr>';
+    return;
+  }
+  tb.innerHTML = log.map((r, i) =>
+    '<tr><td>' + (log.length - i) + '</td><td>' + escapeHtml(r.issuedAt.slice(0, 19).replace('T', ' ')) +
+    '</td><td>' + escapeHtml(r.y + '-' + r.n) + '</td><td>' + escapeHtml(r.s + '~' + r.e) +
+    '</td><td class="issue-line-cell">' + escapeHtml(r.line) + '</td></tr>'
+  ).join('');
+}
+
+function issueSerial() {
+  if (!requireIssueMgmtOrToast()) return;
+  const y = (document.getElementById('issueYear') && document.getElementById('issueYear').value.trim()) || '2026';
+  const start = dateToDotYmd(document.getElementById('issueStart') && document.getElementById('issueStart').value) || '2026.04.01';
+  const end = dateToDotYmd(document.getElementById('issueEnd') && document.getElementById('issueEnd').value) || '2026.06.30';
+  const n = parseInt(document.getElementById('seqNextIssue') && document.getElementById('seqNextIssue').value, 10);
+  if (!Number.isFinite(n) || n < 1) {
+    toast('발급 번호는 1 이상의 정수여야 합니다');
+    return;
+  }
+  const tpl = getLineTemplate();
+  if (!tpl.trim()) {
+    toast('문구 템플릿이 비어 있습니다');
+    return;
+  }
+  const line = renderLineTemplate(tpl, y, String(n), start, end);
+  const rec = { issuedAt: new Date().toISOString(), y, n: String(n), s: start, e: end, line };
+  const arr = getIssueLog();
+  arr.push(rec);
+  setIssueLog(arr);
+  const next = n + 1;
+  const sq = document.getElementById('seqNextIssue');
+  if (sq) sq.value = String(next);
+  setSavedNextSeq(next);
+  renderIssueLogTable();
+  toast('심사번호 제' + y + '-' + n + '호를 발급해 이력에 저장했습니다. 다음 발급 번호: ' + next);
+}
+
+function downloadIssueLogTxt() {
+  if (!requireIssueMgmtOrToast()) return;
+  const log = getIssueLog();
+  const head = '# 심사번호 발급 이력\r\n# 다운로드: ' + new Date().toISOString() + '\r\n# 건수: ' + log.length + '\r\n\r\n';
+  const rows = ['발급일시\t연도-번호\t유효기간\t전체_문구'].concat(
+    log.map(r =>
+      r.issuedAt + '\t' + r.y + '-' + r.n + '\t' + r.s + '~' + r.e + '\t' + String(r.line).replace(/\r?\n/g, ' ').replace(/\t/g, ' ')
+    )
+  );
+  const blob = new Blob([head + rows.join('\r\n') + '\r\n'], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '심사번호_발급이력_' + new Date().toISOString().slice(0, 10) + '.txt';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('발급 이력 TXT를 내려받았습니다');
+}
+
+function downloadIssueLogJson() {
+  if (!requireIssueMgmtOrToast()) return;
+  const log = getIssueLog();
+  const payload = { exportedAt: new Date().toISOString(), count: log.length, records: log };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '심사번호_발급이력_' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('발급 이력 JSON을 내려받았습니다');
+}
+
+function downloadLineTemplateTxt() {
+  if (!requireIssueMgmtOrToast()) return;
+  const tpl = getLineTemplate();
+  const head = '# 준법 문구 템플릿 (별도 관리)\r\n# 다운로드: ' + new Date().toISOString() + '\r\n# 플레이스홀더: {y}=연도 {n}=일련번호 {s}=시작 {e}=종료 (YYYY.MM.DD)\r\n\r\n';
+  const blob = new Blob([head + tpl + '\r\n'], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '심사번호_문구템플릿_' + new Date().toISOString().slice(0, 10) + '.txt';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('문구 템플릿 TXT를 내려받았습니다');
+}
+
+/** 비교 결과 무차이 시 미리보기/복사용 — 상단 템플릿 + 비교 영역 입력값 */
+function getComplianceLine() {
+  const yearEl = document.getElementById('complianceYear');
+  const numEl = document.getElementById('complianceNum');
+  const startEl = document.getElementById('complianceStart');
+  const endEl = document.getElementById('complianceEnd');
+  const y = (yearEl && yearEl.value.trim()) || '2026';
+  const num = (numEl && numEl.value.trim()) || '165';
+  const start = dateToDotYmd(startEl && startEl.value) || '2026.04.01';
+  const end = dateToDotYmd(endEl && endEl.value) || '2026.06.30';
+  const tpl = getLineTemplate();
+  return renderLineTemplate(tpl, y, num, start, end);
+}
+
+function applyQueuedSeqToCompliance() {
+  if (!requireIssueMgmtOrToast()) return;
+  const sq = document.getElementById('seqNextIssue');
+  const cn = document.getElementById('complianceNum');
+  if (!sq || !cn) return;
+  const n = parseInt(sq.value, 10);
+  if (!Number.isFinite(n) || n < 1) {
+    toast('관리 패널의 「다음 발급 번호」를 확인하세요');
+    return;
+  }
+  cn.value = String(n);
+  refreshComplianceLine();
+  toast('다음 발급 예정 번호를 비교 문구에 반영했습니다 (아직 발급되지 않음)');
+}
+
+function refreshComplianceLine() {
+  const out = document.getElementById('complianceLineOut');
+  if (out) out.textContent = getComplianceLine();
+}
+
+function copyComplianceLine() {
+  navigator.clipboard.writeText(getComplianceLine())
+    .then(() => toast('준법 문구를 복사했습니다'))
+    .catch(() => toast('복사 실패 — 브라우저 권한을 확인하세요'));
+}
+
+function renderResults() {
+  const diffs = diffPages.filter(p => p.status==='diff');
+  const adds  = diffPages.filter(p => p.status==='new');
+  const dels  = diffPages.filter(p => p.status==='del');
+  const total = diffPages.length;
+  const changeCount = diffs.length + adds.length + dels.length;
+  const noDiffDetected = total > 0 && changeCount === 0;
+  const needAdditionalReview = total > 0 && changeCount > 0;
+  const diffNeededBlock = needAdditionalReview
+    ? `<div class="diff-needed-banner" id="diffNeededBanner" role="status">
+        <p class="diff-needed-title">${escapeHtml(ADDITIONAL_REVIEW_MESSAGE)}</p>
+        <p class="diff-needed-sub">슬라이드(페이지) 추가·삭제 또는 본문 단어 차이가 감지되었습니다. 수정본을 반영한 재심의·추가 심사 절차를 검토하세요.</p>
+      </div>`
+    : '';
+  const mgmtOk = isIssueMgmtUnlocked();
+  const syncSeqBtn = mgmtOk
+    ? '<button type="button" class="btn-secondary" onclick="applyQueuedSeqToCompliance()">다음 발급 예정 번호 → 비교 번호 필드</button>'
+    : '';
+  const complianceSubNoDiff = mgmtOk
+    ? '기준 파일과 수정 파일을 비교한 결과, 슬라이드(페이지) 추가·삭제·본문 단어 차이가 없습니다. 심사자 화면이 열려 있으면 발급 대기 번호를 비교 칸으로 가져올 수 있습니다.'
+    : '기준 파일과 수정 파일을 비교한 결과, 슬라이드(페이지) 추가·삭제·본문 단어 차이가 없습니다. 심사자 전용 영역을 연 뒤 발급 대기 번호를 비교 칸에 반영할 수 있습니다.';
+  const complianceBlock = noDiffDetected
+    ? `<div class="compliance-banner" id="complianceBanner">
+        <p class="compliance-format-hint">형식: 심사필 제 <strong>YYYY</strong>-<strong>###</strong>호(<strong>YYYY.MM.DD</strong>~<strong>YYYY.MM.DD</strong>)</p>
+        <div class="compliance-fields">
+          <label>연도 (YYYY)<input type="text" id="complianceYear" maxlength="4" inputmode="numeric" value="2026" autocomplete="off" oninput="refreshComplianceLine()"></label>
+          <label>번호 (###)<input type="text" id="complianceNum" inputmode="numeric" value="165" autocomplete="off" oninput="refreshComplianceLine()"></label>
+          <label>시작일<input type="date" id="complianceStart" value="2026-04-01" oninput="refreshComplianceLine()"></label>
+          <label>종료일<input type="date" id="complianceEnd" value="2026-06-30" oninput="refreshComplianceLine()"></label>
+        </div>
+        <p class="compliance-line" id="complianceLineOut"></p>
+        <p class="compliance-sub">${complianceSubNoDiff}</p>
+        <div class="issue-download-row" style="margin-top:12px;margin-bottom:0">
+          ${syncSeqBtn}
+          <button type="button" class="btn-secondary compliance-copy" onclick="copyComplianceLine()">이 문구만 클립보드 복사</button>
+        </div>
+      </div>`
+    : '';
+  let html = '';
+  diffPages.forEach((p, i) => {
+    if (currentFilter==='diff' && p.status==='same') return;
+    if (currentFilter==='same' && p.status!=='same') return;
+    html += buildHTML(p, i);
+  });
+  document.getElementById('results').innerHTML = `
+    <div class="stats">
+      <div class="stat"><div class="stat-num ch">${diffs.length}</div><div class="stat-lbl">변경된 ${unitLabel()}</div></div>
+      <div class="stat"><div class="stat-num ad">+${adds.length}</div><div class="stat-lbl">추가된 ${unitLabel()}</div></div>
+      <div class="stat"><div class="stat-num rm">-${dels.length}</div><div class="stat-lbl">삭제된 ${unitLabel()}</div></div>
+    </div>
+    ${diffNeededBlock}
+    ${complianceBlock}
+    <div class="filter-row">
+      <button type="button" class="fbtn${currentFilter==='all'?' active':''}" onclick="setFilter('all')">전체 ${total}개</button>
+      <button type="button" class="fbtn${currentFilter==='diff'?' active':''}" onclick="setFilter('diff')">변경만 ${changeCount}개</button>
+      <button type="button" class="fbtn${currentFilter==='same'?' active':''}" onclick="setFilter('same')">동일만 ${total-changeCount}개</button>
+    </div>
+    ${html||'<div class="empty-state">해당하는 항목이 없습니다</div>'}`;
+  setTimeout(() => {
+    paintAll();
+    if (noDiffDetected) refreshComplianceLine();
+    const fi = diffPages.findIndex(p => p.status !== 'same');
+    if (fi >= 0) {
+      document.getElementById('body'+fi)?.classList.add('open');
+      document.getElementById('chev'+fi)?.classList.add('open');
+      document.getElementById('pb'+fi)?.classList.add('open');
+      setTimeout(() => paintAll(), 80);
+    }
+  }, 100);
+}
+
+function collectReportObject() {
+  const diffs = diffPages.filter(p => p.status==='diff');
+  const adds = diffPages.filter(p => p.status==='new');
+  const dels = diffPages.filter(p => p.status==='del');
+  const checklist = {};
+  CHECKLIST_ITEMS.forEach(it => {
+    const el = document.getElementById('chk_' + it.id);
+    checklist[it.id] = el ? !!el.checked : false;
+  });
+  const verdictLabel = { ok: '승인', cond: '조건부', reject: '재제출' }[verdict] || '미선택';
+  return {
+    generatedAt: new Date().toISOString(),
+    mode: mode.toUpperCase(),
+    reviewer: (document.getElementById('reviewerName').value || '').trim(),
+    files: { baseline: files[0]?.name || '', revised: files[1]?.name || '' },
+    summary: {
+      changedSlides: diffs.length,
+      addedSlides: adds.length,
+      removedSlides: dels.length,
+      totalSlides: diffPages.length,
+    },
+    verdict,
+    verdictLabel,
+    checklist,
+    globalMemo: document.getElementById('globalMemo').value.trim(),
+    slideMemos: { ...slideMemos },
+    slides: diffPages.map(p => ({
+      num: p.num,
+      status: p.status,
+      oldWordChanges: p.oldCount,
+      newWordChanges: p.newCount,
+    })),
+  };
+}
+
+function reportToText(o) {
+  const lines = [
+    '=== 광고 심사 기록 ===',
+    '일시: ' + o.generatedAt,
+    '형식: ' + o.mode,
+    '심사자: ' + (o.reviewer || '(없음)'),
+    '기준 파일: ' + o.files.baseline,
+    '수정 파일: ' + o.files.revised,
+    '',
+    '--- 요약 ---',
+    '변경 ' + unitLabel() + ': ' + o.summary.changedSlides,
+    '추가: ' + o.summary.addedSlides,
+    '삭제: ' + o.summary.removedSlides,
+    '전체: ' + o.summary.totalSlides,
+    '',
+  ];
+  const noDiff =
+    o.summary.totalSlides > 0 &&
+    o.summary.changedSlides === 0 &&
+    o.summary.addedSlides === 0 &&
+    o.summary.removedSlides === 0;
+  if (noDiff) {
+    lines.push('--- 준법 표기 (비교 무차이) ---', getComplianceLine(), '');
+  } else if (o.summary.totalSlides > 0) {
+    lines.push('--- 비교 결과 ---', ADDITIONAL_REVIEW_MESSAGE, '');
+  }
+  lines.push(
+    '--- 종합 판정 ---',
+    o.verdictLabel,
+    '',
+    '--- 체크리스트 ---',
+  );
+  CHECKLIST_ITEMS.forEach(it => {
+    lines.push((o.checklist[it.id] ? '[v] ' : '[ ] ') + it.label);
+  });
+  lines.push('', '--- 종합 의견 ---', o.globalMemo || '(없음)', '', '--- 슬라이드별 메모 ---');
+  const memoKeys = Object.keys(o.slideMemos).sort((a,b) => parseInt(a)-parseInt(b));
+  if (!memoKeys.length) lines.push('(없음)');
+  else memoKeys.forEach(k => {
+    if (o.slideMemos[k]) lines.push(unitLabel() + ' ' + k + ': ' + o.slideMemos[k]);
+  });
+  return lines.join('\n');
+}
+
+function exportReport() {
+  if (!requireRegisteredReviewerOrToast()) return;
+  const o = collectReportObject();
+  const text = reportToText(o);
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '광고심사기록_' + new Date().toISOString().slice(0,10) + '.txt';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('파일로 저장했습니다');
+}
+
+async function copyReport() {
+  if (!requireRegisteredReviewerOrToast()) return;
+  const o = collectReportObject();
+  const text = reportToText(o);
+  try {
+    await navigator.clipboard.writeText(text);
+    toast('클립보드에 복사했습니다');
+  } catch (e) {
+    toast('복사 실패 — 브라우저 권한을 확인하세요');
+  }
+}
+
+async function compare() {
+  if (!requireRegisteredReviewerOrToast()) return;
+  const btn = document.getElementById('btnCompare');
+  btn.disabled = true;
+  btn.innerHTML = `<svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="animation:spin .8s linear infinite;width:15px;height:15px"><path d="M7.5 1v2M7.5 12v2M1 7.5h2M12 7.5h2"/></svg> 분석 중...`;
+  document.getElementById('results').innerHTML = `
+    <div class="progress-wrap">
+      <div class="progress-label" id="prog-label">파일 파싱 중...</div>
+      <div class="progress-track"><div class="progress-bar" id="pb" style="width:8%"></div></div>
+    </div>`;
+
+  const setP = (w, label) => {
+    const pb = document.getElementById('pb');
+    const pl = document.getElementById('prog-label');
+    if (pb) pb.style.width = w + '%';
+    if (pl && label) pl.textContent = label;
+  };
+
+  try {
+    Object.keys(slideMemos).forEach(k => delete slideMemos[k]);
+    const renderFn = mode === 'pdf' ? renderPDFPages : renderPPTXPages;
+    setP(15, '렌더링 중...');
+    const [oldPages, newPages] = await Promise.all([renderFn(files[0]), renderFn(files[1])]);
+    setP(55, '단어 비교 중...');
+    const maxNum = Math.max(
+      oldPages.length ? oldPages[oldPages.length-1].num : 0,
+      newPages.length ? newPages[newPages.length-1].num : 0
+    );
+    diffPages = [];
+    for (let n = 1; n <= maxNum; n++) {
+      const op = oldPages.find(p => p.num === n);
+      const np = newPages.find(p => p.num === n);
+      if (!op && np) {
+        diffPages.push({ num:n, status:'new', newCanvas:np.canvas, W:np.W, H:np.H });
+      } else if (op && !np) {
+        diffPages.push({ num:n, status:'del', oldCanvas:op.canvas, W:op.W, H:op.H });
+      } else if (op && np) {
+        const { oldHL, newHL, oldCount, newCount, changed } = diffPage(op, np);
+        diffPages.push({ num:n, status:changed?'diff':'same',
+          oldCanvas:op.canvas, newCanvas:np.canvas,
+          oldHL, newHL, oldCount, newCount, W:op.W, H:op.H });
+      }
+      setP(55 + Math.round((n/maxNum)*40), `비교 중... (${n}/${maxNum})`);
+    }
+    setP(100, '완료');
+    currentFilter = 'all';
+    verdict = '';
+    setVerdict('');
+    document.getElementById('globalMemo').value = '';
+    CHECKLIST_ITEMS.forEach(it => { const el = document.getElementById('chk_' + it.id); if (el) el.checked = false; });
+    showReviewPanel(true);
+    setTimeout(() => renderResults(), 200);
+  } catch (e) {
+    document.getElementById('results').innerHTML = `<div class="empty-state">오류: ${e.message}</div>`;
+    showReviewPanel(false);
+  }
+  btn.innerHTML = `<svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M1 7.5h13M9 3l5 4.5L9 12"/></svg> 다시 비교하기`;
+  updateCompareButtonState();
+}
+</script>
+</body>
+</html>
